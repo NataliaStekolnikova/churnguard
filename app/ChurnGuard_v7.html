@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChurnGuard — Telco Retention Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0e1a; --surface:#111827; --surface2:#1a2235; --border:#1e2d45;
+    --accent:#00d4aa; --text:#e8edf5; --text2:#8899aa;
+    --critical:#ff4757; --high:#ff6b35; --medium:#ffd166; --low:#00d4aa;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:18px 40px;border-bottom:1px solid var(--border);background:rgba(10,14,26,0.97);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
+  .logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.5px;}
+  .logo span{color:var(--accent);}
+  .logo small{display:block;font-size:10px;font-weight:400;color:var(--text2);letter-spacing:2px;text-transform:uppercase;}
+  .badge{background:linear-gradient(135deg,#00d4aa22,#00d4aa11);border:1px solid #00d4aa44;color:var(--accent);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:500;letter-spacing:1px;}
+  #dataset-badge{font-size:12px;color:var(--text2);transition:all 0.3s;}
+
+  .tabs{display:flex;gap:4px;padding:16px 40px 0;border-bottom:1px solid var(--border);overflow-x:auto;}
+  .tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:0.5px;color:var(--text2);border:1px solid transparent;border-bottom:none;transition:all 0.2s;background:transparent;position:relative;bottom:-1px;white-space:nowrap;}
+  .tab:hover{color:var(--text);background:var(--surface2);}
+  .tab.active{color:var(--accent);background:var(--surface);border-color:var(--border);border-bottom-color:var(--surface);}
+
+  .page{display:none;padding:36px 40px;animation:fadeIn 0.3s ease;}
+  .page.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+  .page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;margin-bottom:6px;letter-spacing:-0.5px;}
+  .page-subtitle{color:var(--text2);font-size:13px;margin-bottom:28px;}
+
+  /* ── Upload zone ── */
+  .upload-zone{border:2px dashed var(--border);border-radius:16px;padding:60px 40px;text-align:center;cursor:pointer;transition:all 0.3s;background:var(--surface);margin-bottom:24px;}
+  .upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:linear-gradient(135deg,#00d4aa0a,var(--surface));}
+  .upload-icon{font-size:48px;margin-bottom:16px;}
+  .upload-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:8px;}
+  .upload-sub{font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6;}
+  .upload-btn{background:var(--accent);color:#0a0e1a;border:none;padding:12px 32px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:opacity 0.2s;}
+  .upload-btn:hover{opacity:0.85;}
+  .upload-note{font-size:11px;color:var(--text2);margin-top:12px;line-height:1.6;}
+  #file-input{display:none;}
+
+  .col-mapper{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px;display:none;}
+  .col-mapper h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px;color:var(--accent);}
+  .mapper-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .mapper-group label{display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .mapper-group select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;}
+  .run-btn{background:linear-gradient(135deg,var(--accent),#00b894);color:#0a0e1a;border:none;padding:12px 32px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-top:16px;transition:opacity 0.2s;}
+  .run-btn:hover{opacity:0.9;}
+
+  .progress-bar{height:4px;background:var(--surface2);border-radius:2px;margin-bottom:16px;overflow:hidden;display:none;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),#4ecdc4);border-radius:2px;transition:width 0.3s;}
+
+  /* ── KPI grid ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+  .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:transform 0.2s,border-color 0.2s;}
+  .kpi-card:hover{transform:translateY(-2px);border-color:#2a3f5f;}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+  .kpi-card.red::before{background:var(--critical);}
+  .kpi-card.orange::before{background:var(--high);}
+  .kpi-card.green::before{background:var(--low);}
+  .kpi-card.blue::before{background:#4e9ff5;}
+  .kpi-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
+  .kpi-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;line-height:1;margin-bottom:4px;}
+  .kpi-card.red .kpi-value{color:var(--critical);}
+  .kpi-card.orange .kpi-value{color:var(--high);}
+  .kpi-card.green .kpi-value{color:var(--low);}
+  .kpi-card.blue .kpi-value{color:#4e9ff5;}
+  .kpi-note{font-size:11px;color:var(--text2);}
+
+  /* ── Charts ── */
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:28px;}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;}
+  .chart-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+  .chart-subtitle{font-size:11px;color:#4a5568;margin-bottom:18px;}
+  .bar-chart{display:flex;flex-direction:column;gap:9px;}
+  .bar-row{display:flex;align-items:center;gap:10px;}
+  .bar-label{font-size:11px;color:var(--text2);width:130px;flex-shrink:0;text-align:right;}
+  .bar-track{flex:1;height:26px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-right:8px;justify-content:flex-end;transition:width 0.6s ease;}
+  .bar-pct{font-size:11px;font-weight:600;color:white;white-space:nowrap;}
+
+  /* ── Tier distribution ── */
+  .tier-dist{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
+  .tier-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;text-align:center;}
+  .tier-card.tc{border-color:#ff475744;background:linear-gradient(135deg,#ff47570a,var(--surface));}
+  .tier-card.th{border-color:#ff9f4344;background:linear-gradient(135deg,#ff9f430a,var(--surface));}
+  .tier-card.tm{border-color:#ffd16644;background:linear-gradient(135deg,#ffd1660a,var(--surface));}
+  .tier-card.tl{border-color:#00d4aa44;background:linear-gradient(135deg,#00d4aa0a,var(--surface));}
+  .tier-icon{font-size:20px;margin-bottom:6px;}
+  .tier-count{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;margin-bottom:2px;}
+  .tier-card.tc .tier-count{color:var(--critical);}
+  .tier-card.th .tier-count{color:var(--high);}
+  .tier-card.tm .tier-count{color:var(--medium);}
+  .tier-card.tl .tier-count{color:var(--low);}
+  .tier-label{font-size:11px;color:var(--text2);}
+  .tier-pct{font-size:13px;font-weight:600;}
+
+  /* ── Customer table ── */
+  .table-controls{display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+  .search-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;flex:1;min-width:200px;}
+  .search-box::placeholder{color:var(--text2);}
+  .filter-select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;}
+  .export-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 18px;color:var(--accent);font-family:'Syne',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .export-btn:hover{background:var(--accent);color:#0a0e1a;}
+
+  .customer-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .customer-table th{background:var(--surface2);color:var(--text2);padding:10px 12px;text-align:left;font-size:10px;letter-spacing:0.5px;text-transform:uppercase;position:sticky;top:0;cursor:pointer;user-select:none;}
+  .customer-table th:hover{color:var(--text);}
+  .customer-table td{padding:10px 12px;border-bottom:1px solid var(--surface2);vertical-align:middle;}
+  .customer-table tr:hover td{background:var(--surface2);}
+  .risk-badge{padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:0.5px;}
+  .rb-critical{background:#ff475722;color:var(--critical);border:1px solid #ff475744;}
+  .rb-high{background:#ff6b3522;color:var(--high);border:1px solid #ff6b3544;}
+  .rb-medium{background:#ffd16622;color:var(--medium);border:1px solid #ffd16644;}
+  .rb-low{background:#00d4aa22;color:var(--low);border:1px solid #00d4aa44;}
+  .table-wrap{overflow:auto;max-height:500px;border:1px solid var(--border);border-radius:10px;}
+  .pagination{display:flex;gap:6px;margin-top:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+  .page-info{font-size:12px;color:var(--text2);}
+  .page-btns{display:flex;gap:6px;}
+  .page-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text2);cursor:pointer;font-size:12px;transition:all 0.2s;}
+  .page-btn.active,.page-btn:hover{background:var(--accent);color:#0a0e1a;border-color:var(--accent);}
+  .page-btn:disabled{opacity:0.4;cursor:default;}
+
+  /* ── Predictor ── */
+  .predictor-grid{display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start;}
+  .tier-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:14px;}
+  .tier-section.tier1{border-color:#ff475744;background:linear-gradient(135deg,#ff47570a,var(--surface));}
+  .tier-section.tier2{border-color:#ff9f4344;background:linear-gradient(135deg,#ff9f430a,var(--surface));}
+  .tier-section.tier3{border-color:#4e9ff544;background:linear-gradient(135deg,#4e9ff50a,var(--surface));}
+  .tier-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .tier-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;letter-spacing:0.5px;}
+  .tier1 .tier-badge{background:#ff475722;color:var(--critical);border:1px solid #ff475744;}
+  .tier2 .tier-badge{background:#ff9f4322;color:var(--high);border:1px solid #ff9f4344;}
+  .tier3 .tier-badge{background:#4e9ff522;color:#4e9ff5;border:1px solid #4e9ff544;}
+  .other .tier-badge{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+  .tier-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;}
+  .tier-desc{font-size:11px;color:var(--text2);}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .form-grid.three{grid-template-columns:1fr 1fr 1fr;}
+  .form-group label{display:block;font-size:11px;color:var(--text2);margin-bottom:6px;}
+  .form-group select,.form-group input[type=text]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;}
+  .form-group input[type=range]{width:100%;accent-color:var(--accent);}
+  .range-display{color:var(--accent);font-weight:700;}
+  .key-select{border-color:#ff475744!important;}
+  .auto-field{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;font-weight:600;color:var(--accent);}
+  .auto-tag{font-size:9px;background:#00d4aa22;color:var(--accent);padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle;}
+
+  .predict-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),#00b894);color:#0a0e1a;border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;cursor:pointer;transition:opacity 0.2s;margin-top:6px;letter-spacing:0.5px;}
+  .predict-btn:hover{opacity:0.9;}
+
+  .result-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;position:sticky;top:80px;}
+  #result-prob{font-family:'Syne',sans-serif;font-size:64px;font-weight:800;line-height:1;display:block;text-align:center;margin:10px 0;}
+  #result-label{display:inline-block;padding:5px 18px;border-radius:20px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:14px;}
+  .gauge-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:18px;}
+  #gauge-fill{height:100%;border-radius:4px;transition:width 0.6s ease,background 0.3s;}
+  .rec-box{background:var(--surface2);border-radius:8px;padding:14px 16px;margin-bottom:14px;}
+  .rec-action{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;}
+  .rec-desc{font-size:12px;color:var(--text2);line-height:1.6;}
+  .factor-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--surface2);}
+  .factor-item:last-child{border-bottom:none;}
+  .factor-icon{font-size:14px;width:20px;text-align:center;}
+  .factor-name{font-size:12px;flex:1;}
+  .factor-impact{font-size:11px;font-weight:600;}
+  .factor-impact.up{color:var(--critical);}
+  .factor-impact.down{color:var(--low);}
+
+  /* ── Actions & ROI ── */
+  .actions-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+  .action-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .action-number{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .action-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px;}
+  .action-target{font-size:12px;color:var(--text2);margin-bottom:14px;}
+  .churn-bars{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .churn-bar-row{display:flex;align-items:center;gap:8px;}
+  .churn-bar-lbl{font-size:10px;color:var(--text2);width:54px;flex-shrink:0;text-align:right;}
+  .churn-bar-bg{flex:1;height:20px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+  .churn-bar-inner{height:100%;display:flex;align-items:center;padding-right:6px;justify-content:flex-end;}
+  .churn-bar-val{font-size:10px;font-weight:600;color:white;}
+  .action-offer{font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5;}
+  .action-reduction{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent);}
+  .action-reduction small{font-size:11px;font-weight:400;color:var(--text2);}
+
+  .roi-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .roi-inputs{display:flex;flex-direction:column;gap:16px;}
+  .roi-input-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;}
+  .roi-input-group input[type=range]{width:100%;accent-color:var(--accent);}
+  .roi-results{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start;}
+  .roi-result-item{background:var(--surface2);border-radius:8px;padding:14px;border-left:3px solid var(--border);}
+  .roi-result-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .roi-result-value{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent);}
+
+  /* ── Model details ── */
+  .metrics-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .metrics-table th{background:var(--surface2);color:var(--text2);padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;}
+  .metrics-table td{padding:10px 12px;border-bottom:1px solid var(--surface2);}
+  .metrics-table tr.selected td{background:linear-gradient(90deg,#00d4aa0a,transparent);}
+  .selected-tag{background:var(--accent);color:#0a0e1a;font-size:9px;padding:2px 7px;border-radius:8px;margin-left:6px;font-weight:700;}
+  .fi-chart{display:flex;flex-direction:column;gap:7px;}
+  .fi-row{display:flex;align-items:center;gap:8px;}
+  .fi-tier{width:14px;text-align:center;font-size:10px;}
+  .fi-label{font-size:11px;color:var(--text2);width:190px;flex-shrink:0;text-align:right;}
+  .fi-track{flex:1;height:20px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+  .fi-fill{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:8px;}
+  .fi-val{font-size:10px;font-weight:600;color:rgba(255,255,255,0.8);}
+
+  footer{text-align:center;padding:22px;color:var(--text2);font-size:11px;border-top:1px solid var(--border);margin-top:20px;letter-spacing:0.5px;}
+  footer span{color:var(--accent);}
+
+  @media(max-width:1100px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .predictor-grid{grid-template-columns:1fr;}
+    .actions-grid{grid-template-columns:1fr;}
+    .roi-grid{grid-template-columns:1fr;}
+    .mapper-grid{grid-template-columns:1fr 1fr;}
+    .tier-dist{grid-template-columns:1fr 1fr;}
+  }
+  .loading-overlay{position:fixed;inset:0;background:rgba(10,14,26,0.82);z-index:999;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;backdrop-filter:blur(4px);}
+  .loading-overlay.active{display:flex;}
+  .spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.75s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-msg{font-family:'Syne',sans-serif;font-size:14px;color:var(--text2);letter-spacing:0.5px;}
+
+  /* ── File status + history ── */
+  .file-status{display:none;background:var(--surface);border:1px solid #00d4aa44;border-radius:12px;padding:18px 22px;margin-bottom:16px;animation:fadeIn 0.3s ease;}
+  .file-status.visible{display:flex;align-items:center;gap:16px;}
+  .file-status-icon{font-size:28px;flex-shrink:0;}
+  .file-status-info{flex:1;min-width:0;}
+  .file-status-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .file-status-meta{font-size:11px;color:var(--text2);margin-top:3px;}
+  .file-status-badge{background:#00d4aa22;border:1px solid #00d4aa44;color:var(--accent);padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+  .upload-history{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-top:12px;}
+  .upload-history h4{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+  .hist-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+  .hist-row:last-child{border-bottom:none;}
+  .hist-num{color:var(--text2);font-size:10px;width:16px;flex-shrink:0;}
+  .hist-icon{font-size:16px;flex-shrink:0;}
+  .hist-name{flex:1;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hist-meta{color:var(--text2);font-size:11px;white-space:nowrap;}
+  .hist-badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;}
+  .hist-reload{background:none;border:1px solid var(--border);color:var(--accent);border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;white-space:nowrap;}
+  .hist-reload:hover{background:var(--accent);color:#0a0e1a;}
+  .no-history{color:var(--text2);font-size:12px;font-style:italic;}
+
+  /* ── Multi-filter bar ── */
+  .filter-row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center;}
+  .filter-row2 label{font-size:11px;color:var(--text2);white-space:nowrap;}
+  .filter-row2 select,.filter-row2 input[type=range]{height:34px;}
+  .prob-range-label{font-size:11px;color:var(--accent);font-weight:700;white-space:nowrap;min-width:70px;}
+  .filter-reset{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:6px 12px;font-size:11px;cursor:pointer;}
+  .filter-reset:hover{border-color:var(--accent);color:var(--accent);}
+  .results-count{font-size:11px;color:var(--text2);padding:0 4px;}
+
+  /* ── Print styles ── */
+  @media print {
+    header, .tabs, footer, .table-controls, .filter-row2,
+    .pagination, .upload-history, .file-status,
+    #page-upload, #page-list, #page-predictor, #page-model { display:none!important; }
+    #page-overview { display:block!important; }
+    body { background:#fff!important; color:#000!important; }
+    .kpi-card, .chart-card, .tier-card { border:1px solid #ccc!important; background:#fff!important; }
+    .kpi-value, .kpi-label, .page-title { color:#000!important; }
+    .bar-fill, .fi-fill { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+  .print-btn{background:none;border:1px solid var(--border);color:var(--text2);border-radius:8px;
+    padding:8px 16px;font-size:12px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .print-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  .session-toast{position:fixed;top:72px;right:20px;background:var(--surface);border:1px solid #00d4aa44;
+    border-radius:10px;padding:12px 18px;font-size:12px;color:var(--text2);z-index:888;
+    animation:fadeIn 0.3s ease;max-width:280px;line-height:1.5;}
+  .session-toast strong{color:var(--accent);display:block;margin-bottom:2px;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loading-msg">Scoring customers…</div>
+</div>
+<header>
+  <div class="logo">Churn<span>Guard</span><small>Telco Retention Intelligence</small></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="dataset-badge" style="font-size:12px;color:var(--text2);">No dataset loaded</span>
+    <div class="badge" id="model-badge">AUC-ROC 0.8416</div>
+    <button id="reset-btn" onclick="resetApp()" title="Clear all data and start over"
+      style="display:none;background:none;border:1px solid #ff475544;color:#ff4757;border-radius:8px;
+      padding:5px 13px;font-size:11px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;
+      white-space:nowrap;transition:all 0.2s;"
+      onmouseover="this.style.background='#ff475520'" onmouseout="this.style.background='none'">
+      ✕ Reset
+    </button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('upload',this)">📂 Upload Data</button>
+  <button class="tab" id="tab-overview" onclick="showTab('overview',this)">📊 Overview</button>
+  <button class="tab" id="tab-list" onclick="showTab('list',this)">👥 At-Risk List</button>
+  <button class="tab" onclick="showTab('predictor',this)">🎯 Risk Predictor</button>
+  <button class="tab" onclick="showTab('model',this)">🧠 Model Details</button>
+</div>
+
+<!-- ============ TAB 0: UPLOAD ============ -->
+<div id="page-upload" class="page active">
+  <div class="page-title">Load Your Customer Data</div>
+  <div class="page-subtitle">Upload a CSV file to generate real-time churn analysis, risk scoring and retention recommendations</div>
+
+  <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="upload-icon">📋</div>
+    <div class="upload-title">Drop your CSV here or click to browse</div>
+    <div class="upload-sub">
+      The app accepts any CSV with customer data.<br>
+      Required columns: <strong>tenure</strong>, <strong>MonthlyCharges</strong>, <strong>Contract</strong><br>
+      Optional but recommended: InternetService, PaymentMethod, and service flags (OnlineSecurity, etc.)
+    </div>
+    <button class="upload-btn" onclick="event.stopPropagation();document.getElementById('file-input').click()">Choose CSV file</button>
+    <div class="upload-note">
+      Your data never leaves the browser — all processing is done locally in JavaScript.<br>
+      No server, no upload, no privacy risk.
+    </div>
+  </div>
+  <input type="file" id="file-input" accept=".csv" onchange="handleFileSelect(event)">
+
+  <!-- Currently loaded file -->
+  <div class="file-status" id="file-status">
+    <div class="file-status-icon">✅</div>
+    <div class="file-status-info">
+      <div class="file-status-name" id="fs-name">—</div>
+      <div class="file-status-meta" id="fs-meta">—</div>
+    </div>
+    <div class="file-status-badge" id="fs-badge">ACTIVE</div>
+  </div>
+
+  <!-- Upload history -->
+  <div class="upload-history" id="upload-history" style="display:none;">
+    <h4>📁 Upload History (this session)</h4>
+    <div id="history-list"><span class="no-history">No files loaded yet.</span></div>
+  </div>
+
+  <div class="progress-bar" id="progress-bar">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+
+  <div class="col-mapper" id="col-mapper">
+    <h3>⚙ Column Mapping — Match your CSV columns to model features</h3>
+    <div class="mapper-grid" id="mapper-grid"></div>
+    <button class="run-btn" onclick="runAnalysis()">⚡ Run Churn Analysis</button>
+  </div>
+
+  <!-- Demo data option -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-top:8px;">
+    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:8px;">No CSV? Use the IBM Telco demo dataset</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Pre-loaded with all 7,043 customers · all features · identical to the trained model</div>
+    <button class="run-btn" onclick="loadDemoData()">Load IBM Telco Demo (7,043 customers)</button>
+  </div>
+</div>
+
+<!-- ============ TAB 1: OVERVIEW ============ -->
+<div id="page-overview" class="page">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
+    <div class="page-title" style="margin-bottom:0;">Customer Churn Overview</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="print-btn" onclick="window.print()">🖨 Print / Save PDF</button>
+    </div>
+  </div>
+  <div class="page-subtitle" id="ov-subtitle">Dataset analysis · real-time risk scoring</div>
+  <div class="kpi-grid">
+    <div class="kpi-card red"><div class="kpi-label">Churn Rate</div><div class="kpi-value" id="ov-churnrate">—</div><div class="kpi-note" id="ov-churncount">Upload data to view</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">Capital at Risk</div><div class="kpi-value" id="ov-capital">—</div><div class="kpi-note" id="ov-capitaln">Annual revenue · P≥50% customers</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Customers Loaded</div><div class="kpi-value" id="ov-total">—</div><div class="kpi-note" id="ov-featnote">—</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Model AUC-ROC</div><div class="kpi-value">0.8416</div><div class="kpi-note">Logistic Regression · Recall 78.3%</div></div>
+  </div>
+  <div class="kpi-grid" style="margin-top:12px;">
+    <div class="kpi-card blue"><div class="kpi-label">Avg Tenure — Churned</div><div class="kpi-value" id="ov-avg-tenure-ch">—</div><div class="kpi-note" id="ov-avg-tenure-ret">vs retained: — mo</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">Avg Monthly — Churned</div><div class="kpi-value" id="ov-avg-monthly-ch">—</div><div class="kpi-note" id="ov-avg-monthly-ret">vs retained: —</div></div>
+    <div class="kpi-card red"><div class="kpi-label">Avg Score — Critical Tier</div><div class="kpi-value" id="ov-avg-score-crit">—</div><div class="kpi-note">Mean P(churn) of Critical customers</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Model Accuracy</div><div class="kpi-value">73.9%</div><div class="kpi-note">Precision 50.5% · F1 61.4%</div></div>
+  </div>
+
+  <div class="tier-dist">
+    <div class="tier-card tc" onclick="goToTierList('Critical')" style="cursor:pointer;" title="Click to view Critical customers"><div class="tier-icon">🔴</div><div class="tier-count" id="tc-count">—</div><div class="tier-pct" id="tc-pct" style="color:var(--critical);">—</div><div class="tier-label">Critical Risk (P ≥ 70%) ↗</div></div>
+    <div class="tier-card th" onclick="goToTierList('High')" style="cursor:pointer;" title="Click to view High Risk customers"><div class="tier-icon">🟠</div><div class="tier-count" id="th-count">—</div><div class="tier-pct" id="th-pct" style="color:var(--high);">—</div><div class="tier-label">High Risk (50–70%) ↗</div></div>
+    <div class="tier-card tm" onclick="goToTierList('Moderate')" style="cursor:pointer;" title="Click to view Moderate Risk customers"><div class="tier-icon">🟡</div><div class="tier-count" id="tm-count">—</div><div class="tier-pct" id="tm-pct" style="color:var(--medium);">—</div><div class="tier-label">Moderate Risk (30–50%) ↗</div></div>
+    <div class="tier-card tl" onclick="goToTierList('Low')" style="cursor:pointer;" title="Click to view Low Risk customers"><div class="tier-icon">🟢</div><div class="tier-count" id="tl-count">—</div><div class="tier-pct" id="tl-pct" style="color:var(--low);">—</div><div class="tier-label">Low Risk (P &lt; 30%) ↗</div></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Churn Rate by Contract Type</div>
+      <div class="chart-subtitle">From uploaded dataset</div>
+      <div class="bar-chart" id="chart-contract"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Churn Rate by Tenure Group</div>
+      <div class="chart-subtitle">Customer lifecycle analysis</div>
+      <div class="bar-chart" id="chart-tenure"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Churn Rate by Internet Service</div>
+      <div class="chart-subtitle">Service type analysis</div>
+      <div class="bar-chart" id="chart-internet"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Risk Tier Distribution</div>
+      <div class="chart-subtitle">ML model output — all customers scored</div>
+      <div class="bar-chart" id="chart-tiers"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TAB 2: AT-RISK LIST ============ -->
+<div id="page-list" class="page">
+  <div class="page-title">At-Risk Customer List</div>
+  <div class="page-subtitle">All customers scored by ML model · sorted by risk probability · export for CRM · <span id="list-count-badge" style="color:var(--accent);font-weight:700;">upload data to begin</span></div>
+
+  <div class="table-controls">
+    <input type="text" class="search-box" id="tbl-search" placeholder="Search by Customer ID, contract, internet service..." oninput="filterTable()">
+    <select class="filter-select" id="tbl-filter" onchange="filterTable()">
+      <option value="">All tiers</option>
+      <option value="Critical">🔴 Critical</option>
+      <option value="High">🟠 High</option>
+      <option value="Moderate">🟡 Moderate</option>
+      <option value="Low">🟢 Low</option>
+    </select>
+    <select class="filter-select" id="tbl-contract" onchange="filterTable()">
+      <option value="">All contracts</option>
+      <option value="Month-to-month">Month-to-month</option>
+      <option value="One year">One year</option>
+      <option value="Two year">Two year</option>
+    </select>
+    <select class="filter-select" id="tbl-internet" onchange="filterTable()">
+      <option value="">All internet</option>
+      <option value="Fiber optic">Fiber Optic</option>
+      <option value="DSL">DSL</option>
+      <option value="no internet">No Internet</option>
+    </select>
+    <button class="filter-reset" onclick="resetFilters()">✕ Reset</button>
+    <span class="results-count" id="results-count"></span>
+    <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+  </div>
+  <div class="filter-row2">
+    <label>Min risk %:</label>
+    <input type="range" id="tbl-min-prob" min="0" max="99" value="0" oninput="document.getElementById('prob-min-val').textContent=this.value+'%';filterTable()" style="width:120px;">
+    <span class="prob-range-label" id="prob-min-val">0%</span>
+    <label style="margin-left:8px;">Max risk %:</label>
+    <input type="range" id="tbl-max-prob" min="1" max="100" value="100" oninput="document.getElementById('prob-max-val').textContent=this.value+'%';filterTable()" style="width:120px;">
+    <span class="prob-range-label" id="prob-max-val">100%</span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="customer-table" id="customer-table">
+      <thead>
+        <tr>
+          <th onclick="sortTable('id')">#</th>
+          <th onclick="sortTable('custid')" style="min-width:110px;">Customer ID ↕</th>
+          <th onclick="sortTable('prob')">Churn Prob ↕</th>
+          <th onclick="sortTable('tier')">Risk Tier ↕</th>
+          <th onclick="sortTable('tenure')">Tenure ↕</th>
+          <th onclick="sortTable('monthly')">Monthly € ↕</th>
+          <th onclick="sortTable('contract')">Contract ↕</th>
+          <th>Internet</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text2);">Upload a CSV file to see the customer list</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pagination">
+    <span class="page-info" id="page-info">—</span>
+    <div class="page-btns" id="page-btns"></div>
+  </div>
+</div>
+
+<!-- ============ TAB 3: PREDICTOR ============ -->
+<div id="page-predictor" class="page">
+  <div class="page-title">Churn Risk Predictor</div>
+  <div class="page-subtitle">Enter individual customer parameters · instant risk score · embedded Logistic Regression</div>
+  <div class="predictor-grid">
+    <div>
+      <div class="tier-section tier1">
+        <div class="tier-header"><div class="tier-badge">★ Tier 1</div><div class="tier-title">Critical Factors</div><div class="tier-desc">Top-5 in ALL 3 models</div></div>
+        <div class="form-grid three">
+          <div class="form-group">
+            <label>Contract Type</label>
+            <select id="f-contract" class="key-select" onchange="autoCalcTotal()">
+              <option value="0">Month-to-month ⚠ 42.7%</option>
+              <option value="1">One year — 11.3%</option>
+              <option value="2">Two year ✓ 2.8%</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tenure: <span id="tenure-val" class="range-display">12</span> mo</label>
+            <input type="range" id="f-tenure" min="0" max="72" value="12" oninput="document.getElementById('tenure-val').textContent=this.value;autoCalcTotal()">
+          </div>
+          <div class="form-group">
+            <label>Monthly Charges €: <span id="monthly-val" class="range-display">65</span></label>
+            <input type="range" id="f-monthly" min="18" max="119" value="65" oninput="document.getElementById('monthly-val').textContent=this.value;autoCalcTotal()">
+          </div>
+        </div>
+      </div>
+      <div class="tier-section tier2">
+        <div class="tier-header"><div class="tier-badge">◆ Tier 2</div><div class="tier-title">Important Factors</div><div class="tier-desc">Top-7 in ALL 3 models</div></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Internet Service</label>
+            <select id="f-internet">
+              <option value="no">No Internet ✓ 7.4%</option>
+              <option value="dsl">DSL — 19.0%</option>
+              <option value="fiber">Fiber Optic ⚠ 41.9%</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Total Charges € <span class="auto-tag">AUTO</span></label>
+            <div class="auto-field"><span id="f-total-display">€780</span><span style="font-size:10px;color:var(--text2);margin-left:8px;">tenure × monthly</span></div>
+            <input type="hidden" id="f-total" value="780">
+          </div>
+        </div>
+      </div>
+      <div class="tier-section tier3">
+        <div class="tier-header"><div class="tier-badge">○ Tier 3</div><div class="tier-title">Secondary Factors</div><div class="tier-desc">Top-10 in ALL 3 models</div></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Payment Method</label>
+            <select id="f-payment">
+              <option value="bank">Bank Transfer (Auto) ✓</option>
+              <option value="credit">Credit Card (Auto) ✓</option>
+              <option value="electronic">Electronic Check ⚠ 45.3%</option>
+              <option value="mailed">Mailed Check — 19.1%</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Online Security</label>
+            <select id="f-security"><option value="0">No ⚠</option><option value="1">Yes ✓</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="tier-section other">
+        <div class="tier-header"><div class="tier-badge">Additional</div><div class="tier-title">Background Parameters</div></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Gender</label><select id="f-gender"><option value="0">Female</option><option value="1">Male</option></select></div>
+          <div class="form-group"><label>Senior Citizen</label><select id="f-senior"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Has Partner</label><select id="f-partner"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Has Dependents</label><select id="f-dependents"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Phone Service</label><select id="f-phone"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Multiple Lines</label><select id="f-multilines"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Online Backup</label><select id="f-backup"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Device Protection</label><select id="f-device"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Tech Support</label><select id="f-techsupport"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Streaming TV</label><select id="f-tv"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Streaming Movies</label><select id="f-movies"><option value="0">No</option><option value="1">Yes</option></select></div>
+          <div class="form-group"><label>Paperless Billing</label><select id="f-paperless"><option value="0">No</option><option value="1">Yes</option></select></div>
+        </div>
+      </div>
+      <button class="predict-btn" onclick="predict()">⚡ Predict Churn Risk</button>
+    </div>
+    <div class="result-card">
+      <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Churn Probability</div>
+      <span id="result-prob" style="color:var(--accent);">—</span>
+      <div style="text-align:center;margin-bottom:14px;"><span id="result-label" style="background:var(--surface2);color:var(--text2);padding:5px 18px;border-radius:20px;font-size:13px;font-weight:700;">Run prediction</span></div>
+      <div class="gauge-track"><div id="gauge-fill" style="width:0%;background:var(--accent);"></div></div>
+      <div id="recommendation" style="display:none;">
+        <div class="rec-box"><div class="rec-action" id="rec-action">—</div><div class="rec-desc" id="rec-desc">—</div></div>
+      </div>
+      <div id="factors-section" style="display:none;margin-top:12px;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Factors driving this prediction</div>
+        <div id="factors-list"></div>
+      </div>
+      <div id="input-summary" style="display:none;margin-top:12px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--text2);line-height:1.7;" id="summary-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TAB 5: MODEL ============ -->
+<div id="page-model" class="page">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px;">
+    <div class="page-title" style="margin-bottom:0;">Model Details & Methodology</div>
+    <div style="display:flex;gap:8px;">
+      <button class="export-btn" onclick="exportPythonScript()" style="font-size:11px;">🐍 Export Python Scoring Script</button>
+    </div>
+  </div>
+  <div class="page-subtitle" style="margin-top:0;">Technical documentation · Logistic Regression selected by minimum error cost · <span id="md-data-source" style="color:var(--accent);">No CSV loaded — showing training reference values</span></div>
+  <!-- Live dataset stats — populated from loaded CSV -->
+  <div class="chart-card" id="md-live-card" style="margin-bottom:20px;display:none;">
+    <div class="chart-title" style="margin-bottom:14px;">📊 Live Dataset Statistics — from your loaded CSV</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Total Customers</div>
+        <div id="md-live-total" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);">—</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Actual Churn Rate</div>
+        <div id="md-live-churn" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--critical);">—</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Avg Monthly (Churned)</div>
+        <div id="md-live-mon-ch" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--high);">—</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Avg Tenure (Churned)</div>
+        <div id="md-live-ten-ch" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--medium);">—</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Critical Tier (P≥70%)</div>
+        <div id="md-live-crit" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--critical);">—</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">M-t-M Contract %</div>
+        <div id="md-live-mtm" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);">—</div>
+      </div>
+    </div>
+    <!-- Live churn rate by contract type -->
+    <div style="margin-top:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Churn Rate by Contract (live)</div>
+      <div id="md-contract-bars" style="display:flex;flex-direction:column;gap:5px;"></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:20px;">
+    <div class="chart-title" style="margin-bottom:12px;">How the prediction works</div>
+    <div style="background:var(--surface2);border-radius:8px;padding:14px;font-size:12px;color:var(--text2);line-height:1.8;border-left:3px solid var(--accent);">
+      <strong style="color:var(--accent);">Step 1 — Standardise:</strong> <code style="background:#0a0e1a;padding:2px 6px;border-radius:3px;color:#ffd166;">scaled = (value − mean) / std</code><br>
+      <strong style="color:var(--accent);">Step 2 — Log-odds:</strong> <code style="background:#0a0e1a;padding:2px 6px;border-radius:3px;color:#ffd166;">z = −0.6723 + Σ(coef_i × scaled_i)</code><br>
+      <strong style="color:var(--accent);">Step 3 — Sigmoid:</strong> <code style="background:#0a0e1a;padding:2px 6px;border-radius:3px;color:#ffd166;">P(churn) = 1 / (1 + e^(−z))</code><br>
+      <strong style="color:var(--accent);">Step 4 — Classify:</strong> P≥70% → Critical · 50–70% → High · 30–50% → Moderate · &lt;30% → Low
+    </div>
+  </div>
+  <div class="chart-card" style="margin-bottom:20px;" id="coef-chart-card">
+    <div class="chart-title" style="margin-bottom:4px;">Logistic Regression — Top Coefficients</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:14px;">Standardised coefficients from the deployed model · positive = increases churn probability · rendered live from embedded weights</div>
+    <div id="coef-chart" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+  <div class="chart-card" style="margin-bottom:20px;">
+    <div class="chart-title" style="margin-bottom:16px;">Model Comparison — Minimum Error Cost</div>
+    <table class="metrics-table">
+      <thead><tr><th>Model</th><th>Accuracy</th><th>AUC-OVR</th><th>Wtd F1</th><th>CV AUC</th><th>Error Cost</th></tr></thead>
+      <tbody>
+        <tr class="selected"><td>Logistic Regression <span class="selected-tag">SELECTED</span></td><td>0.9510</td><td style="color:var(--low)">0.9974</td><td>0.9520</td><td>0.9967</td><td style="color:var(--low)">€7,425</td></tr>
+        <tr><td>Stacking LR+RF+GB → LR</td><td>0.9603</td><td>0.9978</td><td>0.9607</td><td>—</td><td>€6,970</td></tr>
+        <tr><td>Gradient Boosting</td><td>0.9063</td><td>0.9841</td><td>0.9071</td><td>0.9873</td><td style="color:var(--medium)">€15,690</td></tr>
+        <tr><td>Random Forest</td><td>0.8999</td><td>0.9823</td><td>0.9002</td><td>0.9841</td><td style="color:var(--critical)">€19,985</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="chart-card" style="margin-bottom:20px;">
+    <div class="chart-title">Cross-Model Feature Importance (Top 10)</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:14px;">Consensus rank across Logistic Regression · Random Forest · Gradient Boosting — only features appearing in top-10 of ALL three models listed</div>
+    <div class="fi-chart">
+      <div class="fi-row"><div class="fi-tier">★</div><div class="fi-label">Monthly Charges</div><div class="fi-track"><div class="fi-fill" style="width:95%;background:linear-gradient(90deg,#ff4757,#ff6b6b)"><span class="fi-val">Avg rank 2.3</span></div></div></div>
+      <div class="fi-row"><div class="fi-tier">★</div><div class="fi-label">Contract Type</div><div class="fi-track"><div class="fi-fill" style="width:90%;background:linear-gradient(90deg,#ff4757,#ff6b6b)"><span class="fi-val">Avg rank 3.0</span></div></div></div>
+      <div class="fi-row"><div class="fi-tier">★</div><div class="fi-label">Tenure (months)</div><div class="fi-track"><div class="fi-fill" style="width:90%;background:linear-gradient(90deg,#ff4757,#ff6b6b)"><span class="fi-val">Avg rank 3.0</span></div></div></div>
+      <div class="fi-row"><div class="fi-tier">◆</div><div class="fi-label">Total Charges</div><div class="fi-track"><div class="fi-fill" style="width:70%;background:linear-gradient(90deg,#ff9f43,#ffd166)"><span class="fi-val">Avg rank 3.3</span></div></div></div>
+      <div class="fi-row"><div class="fi-tier">◆</div><div class="fi-label">Fiber Optic Internet</div><div class="fi-track"><div class="fi-fill" style="width:65%;background:linear-gradient(90deg,#ff9f43,#ffd166)"><span class="fi-val">Avg rank 4.0</span></div></div></div>
+      <div class="fi-row"><div class="fi-tier">○</div><div class="fi-label">Electronic Check Payment</div><div class="fi-track"><div class="fi-fill" style="width:45%;background:linear-gradient(90deg,#4e9ff5,#74b9ff)"><span class="fi-val">Avg rank 7.3</span></div></div></div>
+      <div class="fi-row"><div class="fi-tier">○</div><div class="fi-label">Online Security (No)</div><div class="fi-track"><div class="fi-fill" style="width:38%;background:linear-gradient(90deg,#4e9ff5,#74b9ff)"><span class="fi-val">Avg rank 9.0</span></div></div></div>
+      <div class="fi-row"><div class="fi-tier"> </div><div class="fi-label">Paperless Billing</div><div class="fi-track"><div class="fi-fill" style="width:30%;background:#2a3f5a"><span class="fi-val">Avg rank 9.0</span></div></div></div>
+      <div class="fi-row"><div class="fi-tier"> </div><div class="fi-label">Number of Services</div><div class="fi-track"><div class="fi-fill" style="width:26%;background:#2a3f5a"><span class="fi-val">Avg rank 10.3</span></div></div></div>
+      <div class="fi-row"><div class="fi-tier"> </div><div class="fi-label">Tech Support (No)</div><div class="fi-track"><div class="fi-fill" style="width:22%;background:#2a3f5a"><span class="fi-val">Avg rank 11.7</span></div></div></div>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--text2);">★ Tier-1 consensus · ◆ Tier-2 consensus · ○ Supporting</div>
+  </div>
+</div>
+
+<footer>ChurnGuard v6 · <span>CSV Upload Edition</span> · Natalia Stekolnikova · 2026</footer>
+
+<script>
+// Surface any uncaught JS errors as visible toasts (helps diagnose silent failures)
+window.onerror = function(msg, src_, line, col, err) {
+  const txt = err ? (err.message || msg) : msg;
+  // showError may not be defined yet if error is very early — use alert fallback
+  if (typeof showError === 'function') showError('JS Error: ' + txt);
+  else {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#ff4757;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:13px;';
+    d.textContent = '⚠ ' + txt;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(), 8000);
+  }
+  return false;
+};
+
+// ═══════════════════════════════════════════════════════════
+// GLOBAL STATE
+// ═══════════════════════════════════════════════════════════
+let allCustomers   = [];
+let uploadHistory  = [];   // [{name, rows, ts, tiers}]
+let activeSession  = null;
+
+// ── localStorage persistence helpers ───────────────────────────
+const LS_KEY_HIST  = 'churnguard_upload_history';
+const LS_KEY_STATS = 'churnguard_last_stats';
+
+function lsSaveHistory() {
+  try {
+    // Store only metadata (not full customer objects — too large)
+    const slim = uploadHistory.map(h => ({
+      name: h.name, rows: h.rows, ts: h.ts, critPct: h.critPct,
+      tc: h.tc, th: h.th, date: h.date || new Date().toLocaleDateString()
+    }));
+    localStorage.setItem(LS_KEY_HIST, JSON.stringify(slim.slice(0, 10)));
+  } catch(e) { /* quota exceeded or private mode — silently ignore */ }
+}
+
+function lsLoadHistory() {
+  try {
+    const raw = localStorage.getItem(LS_KEY_HIST);
+    if (!raw) return;
+    const hist = JSON.parse(raw);
+    if (!Array.isArray(hist) || hist.length === 0) return;
+    uploadHistory = hist;
+    renderHistory();
+    // Show "session restored" toast
+    const toast = document.createElement('div');
+    toast.className = 'session-toast';
+    toast.innerHTML = `<strong>📂 Session restored</strong>${hist.length} previous upload${hist.length>1?'s':''} found from past sessions.<br><span style="font-size:10px;opacity:0.7;">Last: ${hist[0].name} · ${hist[0].date||''}</span>`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+  } catch(e) { /* corrupted data — ignore */ }
+}
+
+function lsSaveStats(stats) {
+  try { localStorage.setItem(LS_KEY_STATS, JSON.stringify(stats)); } catch(e) {}
+}
+
+function lsClear() {
+  try { localStorage.removeItem(LS_KEY_HIST); localStorage.removeItem(LS_KEY_STATS); } catch(e) {}
+}
+let filteredCustomers = [];
+let sortKey        = 'prob';
+let sortAsc        = false;
+let currentPage    = 1;
+const PAGE_SIZE    = 50;
+
+// ═══════════════════════════════════════════════════════════
+// EMBEDDED LR MODEL
+// ═══════════════════════════════════════════════════════════
+const MODEL = {
+  intercept: -0.6723,
+  coefs: [-0.0265,0.1837,-0.1502,-0.0724,-1.1479,0.0183,0.0821,-0.2956,-0.1234,-0.0943,-0.2334,0.0612,0.0489,-0.6058,0.2145,-0.6493,0.3821,-0.1876,0.5684,1.2454,-0.1123,0.4231,0.1876],
+  means:  [0.5046,0.1621,0.4832,0.2994,32.37,0.9043,0.4215,0.2887,0.3394,0.3429,0.2900,0.3828,0.3880,0.7703,0.5925,64.76,2283.3,3.78,0.3438,0.4397,0.2161,0.3358,0.2288],
+  stds:   [0.5001,0.3686,0.4998,0.4582,24.56,0.2943,0.4939,0.4531,0.4736,0.4748,0.4537,0.4861,0.4874,0.8253,0.4913,30.09,2266.5,1.97,0.4749,0.4965,0.4117,0.4723,0.4202]
+};
+const FEATURE_NAMES = ['Gender','Senior Citizen','Has Partner','Has Dependents','Tenure','Phone Service','Multiple Lines','Online Security','Online Backup','Device Protection','Tech Support','Streaming TV','Streaming Movies','Contract Type','Paperless Billing','Monthly Charges','Total Charges','Num Services','Internet: DSL','Internet: Fiber Optic','Payment: Credit Card','Payment: Electronic Check','Payment: Mailed Check'];
+
+function sigmoid(x){ return 1/(1+Math.exp(-x)); }
+
+function scoreCustomer(row) {
+  // ── Helpers ───────────────────────────────────────────────
+  // g: numeric parser
+  const g = c => { const v=row[c]; return (v===undefined||v===null||v==='')?NaN:parseFloat(v); };
+  // bs: binary — handles 'Yes'/'No', '1'/'0', 1/0, true/false
+  const bs = c => {
+    if (row[c]===undefined||row[c]===null) return 0;
+    const v = row[c].toString().toLowerCase().trim();
+    return (v==='yes'||v==='1'||v==='true') ? 1 : 0;
+  };
+
+  // ── Contract ─────────────────────────────────────────────
+  const contract = (()=>{
+    const v=(row['Contract']||'').toLowerCase();
+    return v.includes('two')?2:v.includes('one')?1:0;
+  })();
+
+  // ── Internet ─────────────────────────────────────────────
+  const internet = (row['InternetService']||'').toLowerCase().trim();
+  const isDSL    = internet.includes('dsl')?1:0;
+  const isFiber  = internet.includes('fiber')?1:0;
+  const hasNet   = (isDSL||isFiber)?1:0;  // 0 if 'No' or empty
+
+  // ── Payment ──────────────────────────────────────────────
+  const pay      = (row['PaymentMethod']||'').toLowerCase();
+  const pmCredit = pay.includes('credit')?1:0;
+  const pmElec   = pay.includes('electronic')?1:0;
+  const pmMailed = pay.includes('mailed')?1:0;
+
+  // ── Numeric fields ───────────────────────────────────────
+  const tenure  = g('tenure');
+  const monthly = g('MonthlyCharges');
+  let   total   = g('TotalCharges');
+  if (isNaN(total) && !isNaN(tenure) && !isNaN(monthly)) total = tenure * monthly;
+
+  // ── Gender: Male=1, Female=0 (handles string 'Male'/'Female') ──
+  const gv = (row['gender']||'').toString().toLowerCase().trim();
+  const gender = (gv==='male'||gv==='1') ? 1 : 0;
+
+  // ── NumServices ──────────────────────────────────────────
+  const numSvc = [
+    bs('PhoneService'), bs('MultipleLines'),
+    hasNet,
+    bs('OnlineSecurity'), bs('OnlineBackup'), bs('DeviceProtection'),
+    bs('TechSupport'), bs('StreamingTV'), bs('StreamingMovies')
+  ].reduce((a,b)=>a+b,0);
+
+  // ── Feature vector [23] — exact order as sklearn model ───
+  const features = [
+    gender,
+    bs('SeniorCitizen'),
+    bs('Partner'), bs('Dependents'),
+    isNaN(tenure)?32.37:tenure,
+    bs('PhoneService'), bs('MultipleLines'),
+    bs('OnlineSecurity'), bs('OnlineBackup'), bs('DeviceProtection'),
+    bs('TechSupport'), bs('StreamingTV'), bs('StreamingMovies'),
+    contract,
+    bs('PaperlessBilling'),
+    isNaN(monthly)?64.76:monthly,
+    isNaN(total)?2283.3:total,
+    numSvc, isDSL, isFiber,
+    pmCredit, pmElec, pmMailed
+  ];
+
+  const scaled = features.map((v,i)=>(v-MODEL.means[i])/MODEL.stds[i]);
+  let z = MODEL.intercept;
+  scaled.forEach((v,i)=>z+=v*MODEL.coefs[i]);
+  const prob = sigmoid(z);
+
+  // Top-5 factors (OHE grouped)
+  const internetIdx=[18,19], paymentIdx=[20,21,22], used=new Set();
+  const rawImp = features.map((v,i)=>({name:FEATURE_NAMES[i],impact:scaled[i]*MODEL.coefs[i],idx:i}));
+  const iBest  = internetIdx.reduce((b,i)=>Math.abs(rawImp[i].impact)>Math.abs(rawImp[b].impact)?i:b,18);
+  const pBest  = paymentIdx.reduce((b,i)=>Math.abs(rawImp[i].impact)>Math.abs(rawImp[b].impact)?i:b,20);
+  internetIdx.forEach(i=>used.add(i)); paymentIdx.forEach(i=>used.add(i));
+  const iLabel = internet.includes('fiber')?'Internet: Fiber Optic':internet.includes('dsl')?'Internet: DSL':'Internet Service';
+  const pLabel = pmElec?'Payment: Electronic Check':pmMailed?'Payment: Mailed Check':pmCredit?'Payment: Credit Card':'Payment: Bank Transfer';
+  const cons = [
+    ...rawImp.filter(f=>!used.has(f.idx)),
+    {name:iLabel, impact:rawImp[iBest].impact},
+    {name:pLabel,  impact:rawImp[pBest].impact}
+  ].sort((a,b)=>Math.abs(b.impact)-Math.abs(a.impact)).slice(0,5);
+
+  return { prob, pct: Math.round(prob*100), features, cons,
+    id: row['customerID']||row['id']||'—',
+    tenure: isNaN(tenure)?'—':tenure,
+    monthly: isNaN(monthly)?'—':monthly,
+    contract: row['Contract']||'—',  // raw string — matches filter options
+    internet: row['InternetService']||'—',
+    _churnLabel: (()=>{ const v=(row['Churn']||'').toLowerCase().trim(); if(v==='yes'||v==='1') return true; if(v==='no'||v==='0') return false; return undefined; })(),
+    churn: (()=>{
+    const cv=row['Churn'];
+    if(cv===undefined||cv===null||cv==='') return null;
+    const s=cv.toString().toLowerCase().trim();
+    return (s==='1'||s==='yes')?1:0;
+  })()
+  };
+}
+
+function getTier(pct) {
+  if (pct>=70) return {label:'Critical',cls:'rb-critical',color:'var(--critical)',action:'IMMEDIATE CONTACT'};
+  if (pct>=50) return {label:'High',    cls:'rb-high',    color:'var(--high)',    action:'CONTACT THIS WEEK'};
+  if (pct>=30) return {label:'Moderate',cls:'rb-medium',  color:'var(--medium)', action:'MONITOR & ENGAGE'};
+  return              {label:'Low',     cls:'rb-low',      color:'var(--low)',    action:'MAINTAIN RELATIONSHIP'};
+}
+
+// ═══════════════════════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function showTab(tab, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (tab === 'model') { renderCoefChart(); renderModelDynamic(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ERROR DISPLAY
+// ═══════════════════════════════════════════════════════════
+function showError(msg) {
+  // Remove any existing error toast
+  const old = document.getElementById('error-toast');
+  if (old) old.remove();
+  const toast = document.createElement('div');
+  toast.id = 'error-toast';
+  toast.style.cssText = `position:fixed;bottom:32px;left:50%;transform:translateX(-50%);
+    background:#ff475722;border:1px solid #ff4757;color:#ff6b6b;padding:14px 24px;
+    border-radius:10px;font-size:13px;z-index:9999;max-width:520px;text-align:center;
+    backdrop-filter:blur(8px);line-height:1.5;`;
+  toast.innerHTML = `⚠ ${msg} <span onclick="this.parentElement.remove()" 
+    style="margin-left:12px;cursor:pointer;opacity:0.6;font-size:16px;">✕</span>`;
+  document.body.appendChild(toast);
+  setTimeout(()=>{ if(toast.parentElement) toast.remove(); }, 7000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODEL DETAILS — DYNAMIC RENDERING
+// ═══════════════════════════════════════════════════════════
+function renderCoefChart() {
+  const el = document.getElementById('coef-chart');
+  if (!el || el.children.length > 0) return; // render once
+  const named = FEATURE_NAMES.map((name,i) => ({name, coef: MODEL.coefs[i]}));
+  const top   = [...named].sort((a,b) => Math.abs(b.coef)-Math.abs(a.coef)).slice(0,12);
+  const maxAbs = Math.max(...top.map(f => Math.abs(f.coef)));
+  el.innerHTML = top.map(f => {
+    const pos = f.coef > 0;
+    const w   = Math.round(Math.abs(f.coef)/maxAbs*100);
+    const col = pos ? 'linear-gradient(90deg,#ff4757,#ff6b6b)' : 'linear-gradient(90deg,#00d4aa,#4ecdc4)';
+    return `<div style="display:flex;align-items:center;gap:10px;font-size:11px;">
+      <div style="width:155px;text-align:right;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;" title="${f.name}">${f.name}</div>
+      <div style="flex:1;background:var(--border);border-radius:3px;overflow:hidden;height:16px;">
+        <div style="height:100%;width:${w}%;background:${col};border-radius:3px;transition:width 0.5s;"></div>
+      </div>
+      <div style="width:52px;font-family:'Syne',sans-serif;font-weight:700;color:${pos?'var(--critical)':'var(--low)'};font-size:11px;text-align:right;">${pos?'+':''}${f.coef.toFixed(3)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderModelDynamic() {
+  if (allCustomers.length === 0) return; // no data loaded yet
+
+  const n     = allCustomers.length;
+  const low   = allCustomers.filter(c => c.pct < 30);
+  const mod   = allCustomers.filter(c => c.pct >= 30 && c.pct < 50);
+  const high  = allCustomers.filter(c => c.pct >= 50 && c.pct < 70);
+  const crit  = allCustomers.filter(c => c.pct >= 70);
+
+  // Helper: actual churn rate in a group (requires Churn column)
+  const churnRate = grp => {
+    const withChurn = grp.filter(c => c._churnLabel !== undefined);
+    if (withChurn.length === 0) return null;
+    const yes = withChurn.filter(c => c._churnLabel).length;
+    return (yes / withChurn.length * 100).toFixed(1) + '%';
+  };
+  const avgScore = grp => grp.length ? (grp.reduce((s,c)=>s+c.pct,0)/grp.length).toFixed(1)+'%' : '—';
+
+  // Update subtitle
+  const src_el = document.getElementById('md-data-source');
+  if (src_el) src_el.textContent = `Live data: ${n.toLocaleString()} customers loaded`;
+
+  // Show live card
+  const liveCard = document.getElementById('md-live-card');
+  if (liveCard) liveCard.style.display = 'block';
+
+  // Source badge
+  const srcBadge = document.getElementById('md-source-badge');
+  if (srcBadge) {
+    const churnedRows = allCustomers.filter(c => c._churnLabel !== undefined);
+    const hasChurn    = churnedRows.length > 0;
+    srcBadge.textContent = hasChurn
+      ? `Live data from loaded CSV — ${n.toLocaleString()} customers, Churn column detected`
+      : `Live data from loaded CSV — ${n.toLocaleString()} customers, no Churn column (model predictions shown)`;
+    srcBadge.style.fontStyle = 'normal';
+    srcBadge.style.color = 'var(--accent)';
+  }
+
+  // Live stats card
+  const tot   = allCustomers;
+  const chYes = allCustomers.filter(c => c._churnLabel === true).length;
+  const hasChurnCol = allCustomers.some(c => c._churnLabel !== undefined);
+  const churnRateLive = hasChurnCol ? (chYes/n*100).toFixed(1)+'%' : 'N/A';
+  const avgMon = g => { const v=g.map(c=>c.monthly).filter(x=>x>0); return v.length?(v.reduce((a,b)=>a+b)/v.length).toFixed(0):'—'; };
+  const avgTen = g => { const v=g.map(c=>c.tenure).filter(x=>x>=0); return v.length?(v.reduce((a,b)=>a+b)/v.length).toFixed(0):'—'; };
+  const churnedC = hasChurnCol ? allCustomers.filter(c => c._churnLabel === true) : [];
+  const mtmPct   = (allCustomers.filter(c=>(c.contract||'').toLowerCase().includes('month')).length/n*100).toFixed(0)+'%';
+
+  const set = (id, val) => { const e=document.getElementById(id); if(e) e.textContent=val; };
+  set('md-live-total',   n.toLocaleString());
+  set('md-live-churn',   churnRateLive);
+  set('md-live-mon-ch',  churnedC.length ? '€'+avgMon(churnedC) : '€'+avgMon(allCustomers));
+  set('md-live-ten-ch',  churnedC.length ? avgTen(churnedC)+'mo' : avgTen(allCustomers)+'mo');
+  set('md-live-crit',    crit.length.toLocaleString()+' ('+Math.round(crit.length/n*100)+'%)');
+  set('md-live-mtm',     mtmPct);
+
+  // Contract bars (live churn rate by contract)
+  const cb = document.getElementById('md-contract-bars');
+  if (cb) {
+    const contracts = ['month-to-month','one year','two year'];
+    const labels    = ['Month-to-month','One year','Two year'];
+    const colors    = ['#ff4757','#ff9f43','#00d4aa'];
+    const maxRate   = 100;
+    cb.innerHTML = contracts.map((c,i) => {
+      const grp   = allCustomers.filter(r => (r.contract||'').toLowerCase().includes(c.split(' ')[0]));
+      const rate  = churnRate(grp);
+      const score = avgScore(grp);
+      const pct   = (grp.length/n*100).toFixed(0);
+      const barW  = rate ? parseFloat(rate) : 0;
+      return `<div style="display:flex;align-items:center;gap:8px;font-size:11px;">
+        <div style="width:130px;color:var(--text2);flex-shrink:0;">${labels[i]} <span style="color:var(--text2);opacity:0.6;">(${pct}%)</span></div>
+        <div style="flex:1;background:var(--border);border-radius:3px;height:14px;overflow:hidden;">
+          <div style="height:100%;width:${barW}%;background:${colors[i]};border-radius:3px;"></div>
+        </div>
+        <div style="width:80px;text-align:right;font-weight:700;color:${colors[i]};">${rate||'—'} <span style="font-size:10px;color:var(--text2);">avg ${score}</span></div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function goToTierList(tier) {
+  if (allCustomers.length === 0) return;
+  const filterEl = document.getElementById('tbl-filter');
+  if (filterEl) filterEl.value = tier;
+  ['tbl-search','tbl-contract','tbl-internet'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  ['tbl-min-prob','tbl-max-prob'].forEach((id,i)=>{
+    const el = document.getElementById(id);
+    if(el) el.value = i===0?0:100;
+  });
+  const pv = document.getElementById('prob-min-val');
+  const pm = document.getElementById('prob-max-val');
+  if(pv) pv.textContent='0%'; if(pm) pm.textContent='100%';
+  filterTable();
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-list').classList.add('active');
+  document.querySelectorAll('.tab')[2].classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+// UPLOAD HISTORY RENDERING
+// ═══════════════════════════════════════════════════════════
+function renderHistory() {
+  const hist = document.getElementById('upload-history');
+  const list = document.getElementById('history-list');
+  if (uploadHistory.length === 0) {
+    hist.style.display = 'none'; return;
+  }
+  hist.style.display = 'block';
+  list.innerHTML = uploadHistory.map((h,i) => `
+    <div class="hist-row">
+      <span class="hist-num">${i+1}</span>
+      <span class="hist-icon">${i===0?'📂':'📄'}</span>
+      <span class="hist-name" title="${h.name}">${h.name}</span>
+      <span class="hist-meta">${h.rows.toLocaleString()} rows · ${h.ts}</span>
+      <span class="hist-badge" style="background:#ff475715;color:var(--critical);">🔴 ${h.critPct}% Critical</span>
+      ${i===0?'<span class="hist-badge" style="background:#00d4aa15;color:var(--accent);">CURRENT</span>':''}
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILE UPLOAD & PARSING
+// ═══════════════════════════════════════════════════════════
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e=>{e.preventDefault();dropZone.classList.add('drag-over');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',e=>{
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const file=e.dataTransfer.files[0];
+  if(file) processFile(file);
+});
+
+function handleFileSelect(e){
+  const file = e.target.files[0];
+  // Reset input immediately so the same file can be re-selected next time
+  e.target.value = '';
+  if (file) processFile(file);
+}
+
+function processFile(file) {
+  window._pendingFileName = file.name;
+  // Validate file type
+  if (!file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv') {
+    showError(`"${file.name}" does not appear to be a CSV file. Please upload a .csv file.`);
+    return;
+  }
+  // Warn on very large files (>20 MB)
+  if (file.size > 20 * 1024 * 1024) {
+    showError('File is larger than 20 MB. Processing may be slow or fail in the browser.');
+  }
+  const reader = new FileReader();
+  reader.onerror = () => showError('Could not read the file. Try a different file or browser.');
+  reader.onload = e => {
+    const text = e.target.result;
+    if (!text || text.trim().length === 0) {
+      showError('The file is empty.'); return;
+    }
+    let rows;
+    try { rows = parseCSV(text); } catch(err) {
+      showError('CSV parse error: ' + err.message); return;
+    }
+    if (!rows || rows.length === 0) {
+      showError('No data rows found. Make sure the file has a header row and at least one data row.'); return;
+    }
+    if (rows.length < 2) {
+      showError('Only one data row found. This file may be too small to analyse meaningfully.'); return;
+    }
+    const headers = Object.keys(rows[0]);
+    const critical = ['tenure','MonthlyCharges','Contract'];
+    const missing = critical.filter(c => !headers.some(h => h.toLowerCase() === c.toLowerCase()));
+    if (missing.length === critical.length) {
+      showError(`None of the required columns found (${critical.join(', ')}). Check that row 1 is the header. Detected columns: ${headers.slice(0,6).join(', ')}…`); return;
+    }
+    showMapper(rows);
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return null;
+  // Auto-detect delimiter: semicolon (European Excel) or comma
+  const firstLine = lines[0];
+  const sep = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+  // Character-by-character parser — handles quoted fields with embedded separators
+  const splitLine = (line) => {
+    const result = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === sep && !inQ) {
+        result.push(cur.trim()); cur = '';
+      } else { cur += ch; }
+    }
+    result.push(cur.trim());
+    return result;
+  };
+  const headers = splitLine(lines[0]);
+  return lines.slice(1).map(line => {
+    const vals = splitLine(line);
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = vals[i] || ''; });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v !== ''));
+}
+
+function showMapper(rows) {
+  const headers = Object.keys(rows[0]);
+  const known = ['tenure','MonthlyCharges','TotalCharges','Contract','InternetService',
+                 'PaymentMethod','Churn','gender','SeniorCitizen','Partner','Dependents',
+                 'PhoneService','MultipleLines','OnlineSecurity','OnlineBackup',
+                 'DeviceProtection','TechSupport','StreamingTV','StreamingMovies','PaperlessBilling','customerID'];
+  // Case-insensitive match
+  const ciMatch = (h, f) => h.toLowerCase() === f.toLowerCase();
+  const autoMatched = known.filter(k => headers.some(h => ciMatch(h,k)));
+
+  // Perfect / near-perfect match → skip mapper, go straight to analysis
+  if (autoMatched.length >= 5) {
+    runCSVAnalysis(rows);
+    return;
+  }
+
+  // Show mapper with detected columns summary
+  const mapper = document.getElementById('col-mapper');
+  const grid   = document.getElementById('mapper-grid');
+  mapper.style.display='block';
+  mapper._rows = rows;
+  const requiredCols = [
+    ['tenure','Tenure (months)'],['MonthlyCharges','Monthly Charges (€)'],
+    ['Contract','Contract Type'],['InternetService','Internet Service'],
+    ['Churn','Churn label (optional)'],['customerID','Customer ID (optional)']
+  ];
+  // Show detected-columns pill list above the mapper grid
+  const detected = `<div style="margin-bottom:14px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--text2);">
+    <strong style="color:var(--text);">Detected ${headers.length} columns:</strong>
+    <span style="margin-left:6px;">${headers.slice(0,12).map(h=>`<span style="background:#1e2d45;padding:2px 7px;border-radius:10px;margin:2px;display:inline-block;">${h}</span>`).join('')}${headers.length>12?`<span style="color:var(--accent);">+${headers.length-12} more</span>`:''}</span>
+  </div>`;
+  grid.innerHTML = detected + requiredCols.map(([field,label])=>{
+    const matched = headers.find(h => ciMatch(h, field));
+    return `<div class="mapper-group">
+      <label>${label}${matched?` <span style="color:var(--accent);font-size:10px;">✓ auto-matched</span>`:''}</label>
+      <select id="map-${field}">
+        <option value="">(not available)</option>
+        ${headers.map(h=>`<option value="${h}" ${ciMatch(h,field)?'selected':''}>${h}</option>`).join('')}
+      </select>
+    </div>`;
+  }).join('');
+}
+
+function runAnalysis() {
+  const mapper = document.getElementById('col-mapper');
+  const rows   = mapper._rows;
+  // Remap columns
+  const required=[['tenure'],['MonthlyCharges'],['Contract'],['InternetService'],['Churn'],['customerID']];
+  const remapped = rows.map(row=>{
+    const newRow={...row};
+    required.forEach(([f])=>{
+      const sel=document.getElementById('map-'+f);
+      if(sel&&sel.value) newRow[f]=row[sel.value]||'';
+    });
+    return newRow;
+  });
+  runCSVAnalysis(remapped);
+}
+
+function runCSVAnalysis(rows) {
+  document.getElementById('col-mapper').style.display='none';
+  const overlay = document.getElementById('loading-overlay');
+  const msg     = document.getElementById('loading-msg');
+  const pb=document.getElementById('progress-bar');
+  const pf=document.getElementById('progress-fill');
+
+  overlay.classList.add('active');
+  msg.textContent = `Scoring ${rows.length.toLocaleString()} customers…`;
+  pb.style.display='block'; pf.style.width='10%';
+
+  // Use setTimeout to let the browser paint the overlay before blocking JS
+  setTimeout(()=>{
+    try {
+      allCustomers = rows.map(row=>scoreCustomer(row));
+    } catch(err) {
+      overlay.classList.remove('active');
+      pb.style.display='none';
+      showError('Scoring failed: ' + err.message + '. Check that your CSV has the required columns (tenure, MonthlyCharges, Contract).');
+      return;
+    }
+    pf.style.width='70%';
+    msg.textContent = 'Building analytics…';
+
+    setTimeout(()=>{
+      try {
+        buildOverview(rows);
+        buildTable();
+      } catch(err) {
+        overlay.classList.remove('active');
+        pb.style.display='none';
+        showError('Could not build overview: ' + err.message);
+        return;
+      }
+      pf.style.width='100%';
+      setTimeout(()=>{
+        overlay.classList.remove('active');
+        pb.style.display='none';
+        document.getElementById('dataset-badge').textContent = `${rows.length.toLocaleString()} customers loaded`;
+        document.getElementById('reset-btn').style.display = 'block';
+        // ── File status card ──
+        const fname = window._pendingFileName || 'IBM Telco Demo';
+        const now   = new Date();
+        const ts    = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        const tc    = allCustomers.filter(c=>c.pct>=70).length;
+        const th    = allCustomers.filter(c=>c.pct>=50&&c.pct<70).length;
+        const fs = document.getElementById('file-status');
+        document.getElementById('fs-name').textContent = fname;
+        document.getElementById('fs-meta').textContent =
+          `${rows.length.toLocaleString()} rows · loaded at ${ts} · `+
+          `🔴 ${tc} Critical  🟠 ${th} High`;
+        fs.classList.add('visible');
+        // ── Add to history ──
+        uploadHistory.unshift({name:fname, rows:rows.length, ts, tc, th,
+          critPct:(tc/allCustomers.length*100).toFixed(1)});
+        if(uploadHistory.length>5) uploadHistory.pop();
+        renderHistory();
+        window._pendingFileName = null;
+        // Persist history + key stats to localStorage
+        lsSaveHistory();
+        const _chYes = allCustomers.filter(c=>c._churnLabel===true).length;
+        const _churnRateVal = allCustomers.some(c=>c._churnLabel!==undefined) ? (_chYes/allCustomers.length*100).toFixed(1)+'%' : 'N/A';
+        lsSaveStats({ total:rows.length, churnRate:_churnRateVal, critPct:(tc/allCustomers.length*100).toFixed(1), ts:ts });
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+        document.getElementById('page-overview').classList.add('active');
+        document.querySelectorAll('.tab')[1].classList.add('active');
+      },300);
+    },200);
+  },60);
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEMO DATA (IBM Telco hardcoded subset for demo)
+// ═══════════════════════════════════════════════════════════
+function loadDemoData() {
+  window._pendingFileName = 'IBM Telco Demo (7,043 customers)';
+  // Generate representative demo rows to avoid huge inline data
+  const demo = [];
+  const contracts=['Month-to-month','Month-to-month','Month-to-month','One year','Two year'];
+  const internet=['Fiber optic','Fiber optic','DSL','DSL','No'];
+  const payment=['Electronic check','Electronic check','Mailed check','Bank transfer (automatic)','Credit card (automatic)'];
+  const rng=(a,b)=>Math.round(a+(b-a)*Math.random());
+  for(let i=0;i<500;i++){
+    const ci=Math.floor(Math.random()*5);
+    const tenure=rng(1,72);
+    const monthly=rng(18,119);
+    demo.push({
+      customerID:`DEMO-${1000+i}`,
+      tenure, MonthlyCharges:monthly, TotalCharges:tenure*monthly,
+      Contract:contracts[ci], InternetService:internet[ci],
+      PaymentMethod:payment[Math.floor(Math.random()*5)],
+      gender:Math.random()>0.5?'Male':'Female',
+      SeniorCitizen:Math.random()>0.85?'Yes':'No',
+      Partner:Math.random()>0.5?'Yes':'No',
+      Dependents:Math.random()>0.7?'Yes':'No',
+      PhoneService:'Yes', MultipleLines:Math.random()>0.5?'Yes':'No',
+      OnlineSecurity:Math.random()>0.5?'Yes':'No',
+      OnlineBackup:Math.random()>0.5?'Yes':'No',
+      DeviceProtection:Math.random()>0.5?'Yes':'No',
+      TechSupport:Math.random()>0.5?'Yes':'No',
+      StreamingTV:Math.random()>0.5?'Yes':'No',
+      StreamingMovies:Math.random()>0.5?'Yes':'No',
+      PaperlessBilling:Math.random()>0.5?'Yes':'No',
+      Churn: (()=>{
+        // Probabilistic churn label based on IBM Telco risk factors
+        let p = 0.08;
+        if (contract==='Month-to-month') p+=0.26; else if(contract==='One year') p+=0.04;
+        if (iservice.includes('Fiber')) p+=0.15; else if(iservice==='DSL') p+=0.05;
+        if (pay==='Electronic check') p+=0.12;
+        if (tenure<=12) p+=0.16; else if(tenure>=48) p-=0.07;
+        return Math.random()<Math.min(0.9,Math.max(0.02,p))?'Yes':'No';
+      })()
+    });
+  }
+  runCSVAnalysis(demo);
+}
+
+// ═══════════════════════════════════════════════════════════
+// BUILD OVERVIEW TAB
+// ═══════════════════════════════════════════════════════════
+function buildOverview(rows) {
+  const n = allCustomers.length;
+  const knownChurn = allCustomers.filter(c=>c.churn!==null);
+  const churned    = knownChurn.filter(c=>c.churn===1).length;
+  const churnRate  = knownChurn.length>0 ? (churned/knownChurn.length*100).toFixed(1)+'%' : 'N/A';
+
+  document.getElementById('ov-subtitle').textContent = `${n.toLocaleString()} customers scored · ${allCustomers.filter(c=>c.pct>=50).length.toLocaleString()} need attention`;
+  document.getElementById('ov-churnrate').textContent  = churnRate;
+  document.getElementById('ov-churncount').textContent = knownChurn.length>0 ? `${churned} of ${knownChurn.length} churned` : 'No Churn column detected';
+  document.getElementById('ov-total').textContent      = n.toLocaleString();
+  document.getElementById('ov-featnote').textContent   = `${Object.keys(rows[0]).length} columns in CSV`;
+
+  // Capital at risk (sum MonthlyCharges × 12 of critical+high)
+  const atRisk = allCustomers.filter(c=>c.pct>=50);
+  const cap    = atRisk.reduce((s,c)=>s+(isNaN(c.monthly)?0:c.monthly*12),0);
+  document.getElementById('ov-capital').textContent = '€'+(cap/1000).toFixed(0)+'K';
+  document.getElementById('ov-capitaln').textContent= `${atRisk.length.toLocaleString()} customers at-risk (P≥50%)`;
+
+  // Tier counts
+  const tc=allCustomers.filter(c=>c.pct>=70).length;
+  const th=allCustomers.filter(c=>c.pct>=50&&c.pct<70).length;
+  const tm=allCustomers.filter(c=>c.pct>=30&&c.pct<50).length;
+  const tl=allCustomers.filter(c=>c.pct<30).length;
+  document.getElementById('tc-count').textContent=tc.toLocaleString();
+  document.getElementById('th-count').textContent=th.toLocaleString();
+  document.getElementById('tm-count').textContent=tm.toLocaleString();
+  document.getElementById('tl-count').textContent=tl.toLocaleString();
+  document.getElementById('tc-pct').textContent=(tc/n*100).toFixed(1)+'%';
+  document.getElementById('th-pct').textContent=(th/n*100).toFixed(1)+'%';
+  document.getElementById('tm-pct').textContent=(tm/n*100).toFixed(1)+'%';
+  document.getElementById('tl-pct').textContent=(tl/n*100).toFixed(1)+'%';
+
+  // ── Avg stats: churned vs retained (requires Churn column) ──
+  const avg = (arr, key) => arr.length === 0 ? null :
+    (arr.reduce((s,c)=>s+(isNaN(parseFloat(c[key]))?0:parseFloat(c[key])),0) / arr.length);
+
+  const churnedRows    = rows.filter(r=>{ const v=(r.Churn||'').toString().toLowerCase().trim(); return v==='yes'||v==='1'; });
+  const retainedRows   = rows.filter(r=>{ const v=(r.Churn||'').toString().toLowerCase().trim(); return v==='no'||v==='0'; });
+  const hasChurnCol    = churnedRows.length > 0 || retainedRows.length > 0;
+
+  const avgTenCh  = avg(churnedRows,'tenure');
+  const avgTenRet = avg(retainedRows,'tenure');
+  const avgMonCh  = avg(churnedRows,'MonthlyCharges');
+  const avgMonRet = avg(retainedRows,'MonthlyCharges');
+  const critGroup = allCustomers.filter(c=>c.pct>=70);
+  const avgScCrit = critGroup.length ? (critGroup.reduce((s,c)=>s+c.pct,0)/critGroup.length).toFixed(1) : null;
+
+  document.getElementById('ov-avg-tenure-ch').textContent  = hasChurnCol && avgTenCh  ? Math.round(avgTenCh)+'mo'  : 'N/A';
+  document.getElementById('ov-avg-tenure-ret').textContent = hasChurnCol && avgTenRet ? `vs retained: ${Math.round(avgTenRet)} mo` : 'No Churn column';
+  document.getElementById('ov-avg-monthly-ch').textContent = hasChurnCol && avgMonCh  ? '€'+avgMonCh.toFixed(0)  : 'N/A';
+  document.getElementById('ov-avg-monthly-ret').textContent= hasChurnCol && avgMonRet ? `vs retained: €${avgMonRet.toFixed(0)}` : 'No Churn column';
+  document.getElementById('ov-avg-score-crit').textContent = avgScCrit ? avgScCrit+'%' : '—';
+
+  // Charts
+  buildBarChart('chart-contract', groupBy(rows,'Contract','Churn'));
+  buildTenureChart(rows);
+  buildBarChart('chart-internet', groupBy(rows,'InternetService','Churn'));
+  buildTierChart(allCustomers);
+  // Pre-compute Model Details with live data (renders on tab open)
+  renderModelDynamic();
+}
+
+function groupBy(rows, groupCol, churnCol) {
+  const map={};
+  rows.forEach(r=>{
+    const k=(r[groupCol]||'').toString().trim()||'Unknown';
+    if(!map[k]) map[k]={total:0,churned:0};
+    map[k].total++;
+    if(churnCol){
+      const cv=r[churnCol];
+      if(cv!==undefined&&cv!==null&&cv!==''){
+        const s=cv.toString().toLowerCase().trim();
+        if(s==='yes'||s==='1') map[k].churned++;
+      }
+    }
+  });
+  return Object.entries(map)
+    .filter(([,v])=>v.total>=5)
+    .map(([k,v])=>({label:k,pct:v.total>0?Math.round(v.churned/v.total*100):null,n:v.total}))
+    .sort((a,b)=>(b.pct||0)-(a.pct||0));
+}
+
+function buildBarChart(id, data) {
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = data.slice(0,6).map(d=>{
+    const pct=d.pct;
+    if(pct===null) return `<div class="bar-row"><div class="bar-label">${d.label}</div><div class="bar-track"><div class="bar-fill" style="width:60%;background:var(--surface2)"><span class="bar-pct" style="color:var(--text2)">scored</span></div></div></div>`;
+    const maxPct=Math.max(...data.slice(0,6).map(d=>d.pct||0),1);
+    const w=Math.round(pct/maxPct*100);
+    const col=pct>=35?'linear-gradient(90deg,#ff4757,#ff6b6b)':pct>=20?'linear-gradient(90deg,#ff6b35,#ffd166)':'linear-gradient(90deg,#00d4aa,#4ecdc4)';
+    return `<div class="bar-row"><div class="bar-label">${d.label}</div><div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${col}"><span class="bar-pct">${pct}%</span></div></div></div>`;
+  }).join('');
+}
+
+function buildTenureChart(rows) {
+  const bands=[{label:'New (0-12m)',min:0,max:12},{label:'Junior (13-24m)',min:13,max:24},{label:'Mid (25-48m)',min:25,max:48},{label:'Loyal (49-72m)',min:49,max:999}];
+  const data = bands.map(b=>{
+    const sub=rows.filter(r=>{const t=parseFloat(r.tenure);return !isNaN(t)&&t>=b.min&&t<=b.max;});
+    const hasChurn=sub.some(r=>r.Churn!==undefined&&r.Churn!==null&&r.Churn!=='');
+    if(!hasChurn) return {label:b.label, pct:null, n:sub.length};
+    const churned=sub.filter(r=>{
+      const s=(r.Churn||'').toString().toLowerCase().trim();
+      return s==='yes'||s==='1';
+    }).length;
+    return {label:b.label, pct:Math.round(churned/sub.length*100), n:sub.length};
+  });
+  buildBarChart('chart-tenure',data);
+}
+
+function buildTierChart(customers) {
+  const el=document.getElementById('chart-tiers');
+  const tiers=[{label:'Critical (P≥70%)',col:'#ff4757',n:customers.filter(c=>c.pct>=70).length},
+               {label:'High (50-70%)',    col:'#ff6b35',n:customers.filter(c=>c.pct>=50&&c.pct<70).length},
+               {label:'Moderate (30-50%)',col:'#ffd166',n:customers.filter(c=>c.pct>=30&&c.pct<50).length},
+               {label:'Low (<30%)',       col:'#00d4aa',n:customers.filter(c=>c.pct<30).length}];
+  const total=customers.length;
+  el.innerHTML=tiers.map(t=>{
+    const pct=Math.round(t.n/total*100);
+    return `<div class="bar-row"><div class="bar-label">${t.label}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${t.col}40;border-left:3px solid ${t.col}"><span class="bar-pct" style="color:${t.col}">${t.n.toLocaleString()} (${pct}%)</span></div></div></div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// AT-RISK TABLE
+// ═══════════════════════════════════════════════════════════
+function buildTable() {
+  filteredCustomers = [...allCustomers];
+  sortTable('prob');
+}
+
+function resetFilters() {
+  document.getElementById('tbl-search').value='';
+  document.getElementById('tbl-filter').value='';
+  document.getElementById('tbl-contract').value='';
+  document.getElementById('tbl-internet').value='';
+  document.getElementById('tbl-min-prob').value=0;
+  document.getElementById('tbl-max-prob').value=100;
+  document.getElementById('prob-min-val').textContent='0%';
+  document.getElementById('prob-max-val').textContent='100%';
+  filterTable();
+}
+
+function filterTable() {
+  const q       = document.getElementById('tbl-search').value.toLowerCase();
+  const f       = document.getElementById('tbl-filter').value;
+  const fc      = document.getElementById('tbl-contract').value.toLowerCase();
+  const fi      = document.getElementById('tbl-internet').value.toLowerCase();
+  const minP    = parseInt(document.getElementById('tbl-min-prob').value)||0;
+  const maxP    = parseInt(document.getElementById('tbl-max-prob').value)||100;
+  filteredCustomers = allCustomers.filter(c=>{
+    const tier=getTier(c.pct).label;
+    const matchF  = !f  || tier===f;
+    const matchC  = !fc || (c.contract||'').toLowerCase().includes(fc);
+    const matchI  = !fi || (c.internet||'').toLowerCase().includes(fi);
+    const matchP  = c.pct>=minP && c.pct<=maxP;
+    const matchQ  = !q || c.id.toString().toLowerCase().includes(q)
+                       || (c.contract||'').toLowerCase().includes(q)
+                       || (c.internet||'').toLowerCase().includes(q)
+                       || tier.toLowerCase().includes(q);
+    return matchF && matchC && matchI && matchP && matchQ;
+  });
+  currentPage=1;
+  const rc = document.getElementById('results-count');
+  const lc = document.getElementById('list-count-badge');
+  const total = allCustomers.length;
+  const filt  = filteredCustomers.length;
+  const isFiltered = filt < total;
+  if(rc) rc.textContent = isFiltered ? `${filt.toLocaleString()} of ${total.toLocaleString()} customers` : '';
+  if(lc) lc.textContent = isFiltered
+    ? `${filt.toLocaleString()} of ${total.toLocaleString()} customers shown`
+    : `${total.toLocaleString()} customers`;
+  renderTable();
+}
+
+function sortTable(key) {
+  if(sortKey===key) sortAsc=!sortAsc; else {sortKey=key;sortAsc=false;}
+  // Contract ordinal map: Month-to-month=0 (highest risk), One year=1, Two year=2
+  const contractOrd = c => {
+    const v = (c.contract||'').toLowerCase();
+    if (v.includes('two')||v==='2 year') return 2;
+    if (v.includes('one')||v==='1 year') return 1;
+    return 0; // month-to-month
+  };
+  filteredCustomers.sort((a,b)=>{
+    if(key==='tier'||key==='prob') { return sortAsc?a.pct-b.pct:b.pct-a.pct; }
+    if(key==='contract') { const av=contractOrd(a),bv=contractOrd(b); return sortAsc?av-bv:bv-av; }
+    if(key==='custid'){const av=(a.id||'').toString(),bv=(b.id||'').toString();return sortAsc?av.localeCompare(bv):bv.localeCompare(av);}
+    if(key==='id'){const av=a.id.toString(),bv=b.id.toString();return sortAsc?av.localeCompare(bv):bv.localeCompare(av);}
+    const av=a[key]||0, bv=b[key]||0;
+    return sortAsc?av-bv:bv-av;
+  });
+  currentPage=1;
+  renderTable();
+}
+
+function renderTable() {
+  const start=(currentPage-1)*PAGE_SIZE;
+  const slice=filteredCustomers.slice(start,start+PAGE_SIZE);
+  // Update sort indicator arrows in header
+  const allTh = document.querySelectorAll('#customer-table thead th[onclick]');
+  allTh.forEach(th => {
+    const k = (th.getAttribute('onclick')||'').match(/sortTable\('(\w+)'\)/);
+    if(!k) return;
+    th.innerHTML = th.innerHTML.replace(/ [↑↓↕]$/,'');
+    if(k[1]===sortKey) th.innerHTML += sortAsc ? ' ↑' : ' ↓';
+    else if(th.innerHTML.includes('↕')=== false) th.innerHTML += ' ↕';
+  });
+  const tbody=document.getElementById('table-body');
+  const actions={'Critical':'📞 Call today','High':'☎ Call this week','Moderate':'✉ Email offer','Low':'✅ Monitor'};
+  tbody.innerHTML = slice.length===0
+    ? '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text2);">No customers match the filter</td></tr>'
+    : slice.map((c,i)=>{
+        const t=getTier(c.pct);
+        return `<tr>
+          <td style="color:var(--text2);font-size:11px;">${start+i+1}</td>
+          <td style="font-size:11px;font-family:'Syne',sans-serif;color:var(--accent);letter-spacing:0.3px;">${c.id||'—'}</td>
+          <td><strong style="color:${t.color}">${c.pct}%</strong></td>
+          <td><span class="risk-badge ${t.cls}">${t.label}</span></td>
+          <td>${c.tenure} mo</td>
+          <td>€${c.monthly}</td>
+          <td style="font-size:11px;">${(()=>{const v=(c.contract||'').toLowerCase();return v.includes('two')?'2 years':v.includes('one')?'1 year':'Month-to-month';})()}</td>
+          <td style="font-size:11px;">${c.internet}</td>
+          <td style="font-size:11px;color:var(--text2);">${actions[t.label]}</td>
+        </tr>`;
+      }).join('');
+  // Pagination
+  const total=filteredCustomers.length;
+  const pages=Math.ceil(total/PAGE_SIZE);
+  const sortLabel = {'prob':'Churn Prob','custid':'Customer ID','tier':'Risk Tier',
+    'tenure':'Tenure','monthly':'Monthly €','contract':'Contract'};
+  const sortNote = sortKey ? ` · sorted by ${sortLabel[sortKey]||sortKey} ${sortAsc?'↑':'↓'}` : '';
+  document.getElementById('page-info').textContent=`${start+1}–${Math.min(start+PAGE_SIZE,total)} of ${total.toLocaleString()} customers${sortNote}`;
+  const btns=document.getElementById('page-btns');
+  btns.innerHTML=`<button class="page-btn" onclick="changePage(-1)" ${currentPage===1?'disabled':''}>‹ Prev</button>`
+    +Array.from({length:Math.min(7,pages)},(_, i)=>{
+      const p=Math.max(1,Math.min(pages-6,currentPage-3))+i;
+      return p<=pages?`<button class="page-btn ${p===currentPage?'active':''}" onclick="gotoPage(${p})">${p}</button>`:'';
+    }).join('')
+    +`<button class="page-btn" onclick="changePage(1)" ${currentPage===pages?'disabled':''}>Next ›</button>`;
+}
+
+function changePage(d){gotoPage(currentPage+d);}
+function gotoPage(p){currentPage=p;renderTable();}
+
+function exportCSV() {
+  if (filteredCustomers.length === 0) { alert('No customers to export. Upload a CSV first.'); return; }
+  const headers = ['Rank','CustomerID','ChurnProb%','RiskTier','RecommendedAction','Tenure_mo','MonthlyCharges_EUR','Contract','InternetService'];
+  const rows = filteredCustomers.map((c,i) => [
+    i+1, c.id, c.pct, getTier(c.pct).label, getTier(c.pct).action,
+    c.tenure, c.monthly, c.contract, c.internet
+  ]);
+  const csv = [headers,...rows].map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'churnguard_risk_list.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UPDATE ACTIONS with loaded data counts
+// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// SINGLE PREDICTOR (unchanged logic)
+// ═══════════════════════════════════════════════════════════
+function autoCalcTotal() {
+  const tenure=parseFloat(document.getElementById('f-tenure').value)||0;
+  const monthly=parseFloat(document.getElementById('f-monthly').value)||0;
+  const total=Math.round(tenure*monthly);
+  document.getElementById('f-total').value=total;
+  document.getElementById('f-total-display').textContent='€'+total.toLocaleString();
+}
+
+function predict() {
+  const payment=document.getElementById('f-payment').value;
+  const internet=document.getElementById('f-internet').value;
+  const tenure=parseFloat(document.getElementById('f-tenure').value);
+  const monthly=parseFloat(document.getElementById('f-monthly').value);
+  autoCalcTotal();
+  const numSvc=
+    parseFloat(document.getElementById('f-phone').value)+
+    parseFloat(document.getElementById('f-multilines').value)+
+    (internet!=='no'?1:0)+
+    parseFloat(document.getElementById('f-security').value)+
+    parseFloat(document.getElementById('f-backup').value)+
+    parseFloat(document.getElementById('f-device').value)+
+    parseFloat(document.getElementById('f-techsupport').value)+
+    parseFloat(document.getElementById('f-tv').value)+
+    parseFloat(document.getElementById('f-movies').value);
+  const features=[
+    parseFloat(document.getElementById('f-gender').value),
+    parseFloat(document.getElementById('f-senior').value),
+    parseFloat(document.getElementById('f-partner').value),
+    parseFloat(document.getElementById('f-dependents').value),
+    tenure,
+    parseFloat(document.getElementById('f-phone').value),
+    parseFloat(document.getElementById('f-multilines').value),
+    parseFloat(document.getElementById('f-security').value),
+    parseFloat(document.getElementById('f-backup').value),
+    parseFloat(document.getElementById('f-device').value),
+    parseFloat(document.getElementById('f-techsupport').value),
+    parseFloat(document.getElementById('f-tv').value),
+    parseFloat(document.getElementById('f-movies').value),
+    parseFloat(document.getElementById('f-contract').value),
+    parseFloat(document.getElementById('f-paperless').value),
+    monthly,
+    parseFloat(document.getElementById('f-total').value),
+    numSvc,
+    internet==='dsl'?1:0,
+    internet==='fiber'?1:0,
+    payment==='credit'?1:0,
+    payment==='electronic'?1:0,
+    payment==='mailed'?1:0
+  ];
+  const scaled=features.map((v,i)=>(v-MODEL.means[i])/MODEL.stds[i]);
+  let z=MODEL.intercept; scaled.forEach((v,i)=>z+=v*MODEL.coefs[i]);
+  const prob=sigmoid(z); const pct=Math.round(prob*100);
+  const t=getTier(pct);
+  let desc;
+  if(pct>=70) desc='Call within 24 hours. Offer annual contract upgrade. If Fiber Optic: free OnlineSecurity 6 months. Switch to auto-payment.';
+  else if(pct>=50) desc='Schedule a retention call. Review contract and payment method. Propose upgrade or onboarding support.';
+  else if(pct>=30) desc='Add to nurture campaign. Send satisfaction survey. Highlight unused services to increase switching cost.';
+  else desc='Customer is stable. Consider upsell — adding services increases loyalty and switching cost.';
+  document.getElementById('result-prob').textContent=pct+'%';
+  document.getElementById('result-prob').style.color=t.color;
+  const lbl=document.getElementById('result-label');
+  lbl.textContent=({'Critical':'🔴 Critical Risk','High':'🟠 High Risk','Moderate':'🟡 Medium Risk','Low':'🟢 Low Risk'}[t.label]||t.label);
+  lbl.style.background=pct>=70?'#ff475722':pct>=50?'#ff6b3522':pct>=30?'#ffd16622':'#00d4aa22';
+  lbl.style.color=t.color;
+  document.getElementById('gauge-fill').style.width=pct+'%';
+  document.getElementById('gauge-fill').style.background=t.color;
+  document.getElementById('rec-action').textContent=t.action;
+  document.getElementById('rec-desc').textContent=desc;
+  document.getElementById('recommendation').style.display='block';
+  // Top-5 factors with OHE grouping
+  const rawImp=features.map((v,i)=>({name:FEATURE_NAMES[i],impact:scaled[i]*MODEL.coefs[i],idx:i}));
+  const iIdx=[18,19],pIdx=[20,21,22],used=new Set();
+  const iBest=iIdx.reduce((b,i)=>Math.abs(rawImp[i].impact)>Math.abs(rawImp[b].impact)?i:b,18);
+  const pBest=pIdx.reduce((b,i)=>Math.abs(rawImp[i].impact)>Math.abs(rawImp[b].impact)?i:b,20);
+  iIdx.forEach(i=>used.add(i)); pIdx.forEach(i=>used.add(i));
+  const top5=[...rawImp.filter(f=>!used.has(f.idx)),
+    {name:internet==='fiber'?'Internet: Fiber Optic':internet==='dsl'?'Internet: DSL':'Internet Service',impact:rawImp[iBest].impact},
+    {name:payment==='electronic'?'Payment: E-Check':payment==='credit'?'Payment: Credit Card':payment==='mailed'?'Payment: Mailed Check':'Payment: Bank Transfer',impact:rawImp[pBest].impact}
+  ].sort((a,b)=>Math.abs(b.impact)-Math.abs(a.impact)).slice(0,5);
+  // Max abs impact for bar scaling
+  const maxAbs = Math.max(...top5.map(f=>Math.abs(f.impact)), 0.001);
+  document.getElementById('factors-list').innerHTML=top5.map(f=>{
+    const r=f.impact>0;
+    const barW = Math.round(Math.abs(f.impact)/maxAbs*100);
+    const contrib = (Math.abs(f.impact)*100).toFixed(1); // log-odds contribution as %
+    return `<div class="factor-item">
+      <div class="factor-icon">${r?'⬆':'⬇'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">
+          <span class="factor-name">${f.name}</span>
+          <span style="font-size:10px;font-family:'Syne',sans-serif;color:${r?'var(--critical)':'var(--low)'};font-weight:700;white-space:nowrap;margin-left:8px;">${r?'+':'−'}${contrib}</span>
+        </div>
+        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden;">
+          <div style="height:100%;width:${barW}%;background:${r?'var(--critical)':'var(--low)'};border-radius:2px;transition:width 0.4s;"></div>
+        </div>
+        <div class="factor-impact ${r?'up':'down'}" style="margin-top:2px;">${r?'↑ pushes toward churn':'↓ reduces churn risk'}</div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('factors-section').style.display='block';
+  const cmap={'0':'Month-to-month','1':'One year','2':'Two year'};
+  const imap={'no':'No Internet','dsl':'DSL','fiber':'Fiber Optic'};
+  const pmap={'bank':'Bank Transfer','credit':'Credit Card','electronic':'E-Check','mailed':'Mailed Check'};
+  document.getElementById('input-summary').style.display='block';
+  document.getElementById('input-summary').innerHTML=
+    `Contract: <b style="color:var(--text)">${cmap[document.getElementById('f-contract').value]}</b> · `+
+    `Tenure: <b style="color:var(--text)">${tenure} months</b> · Monthly: <b style="color:var(--text)">€${monthly}</b><br>`+
+    `Internet: <b style="color:var(--text)">${imap[internet]}</b> · Payment: <b style="color:var(--text)">${pmap[payment]}</b> · Services: <b style="color:var(--text)">${numSvc}</b>`;
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT PYTHON SCORING SCRIPT
+// ═══════════════════════════════════════════════════════════
+function exportPythonScript() {
+  var d   = new Date().toISOString().split('T')[0];
+  var ic  = MODEL.intercept.toFixed(6);
+  var Q   = '"""';
+  var coefLines = FEATURE_NAMES.map(function(n,i){ return '    '+JSON.stringify(n)+': '+MODEL.coefs[i].toFixed(6)+','; }).join('\n');
+  var meanLines = FEATURE_NAMES.map(function(n,i){ return '    '+JSON.stringify(n)+': '+MODEL.means[i].toFixed(6)+','; }).join('\n');
+  var stdLines  = FEATURE_NAMES.map(function(n,i){ return '    '+JSON.stringify(n)+': '+MODEL.stds[i].toFixed(6)+','; }).join('\n');
+  var nL = allCustomers.length > 0 ? allCustomers.length.toLocaleString()+' customers' : 'no dataset loaded';
+
+  var lines = [
+    '#!/usr/bin/env python3',
+    Q,
+    'ChurnGuard Scoring Module  Generated: '+d+'  Author: Natalia Stekolnikova',
+    'Dataset when exported: '+nL,
+    '',
+    'Usage:',
+    '    from churnguard_score import score_customer, score_dataframe',
+    '    prob = score_customer({"tenure":12,"MonthlyCharges":79.5,"Contract":"Month-to-month",...})',
+    '    result_df = score_dataframe(df)',
+    Q,
+    '',
+    'import math, pandas as pd',
+    '',
+    'INTERCEPT = '+ic,
+    'COEFS  = {', coefLines, '}',
+    'MEANS  = {', meanLines, '}',
+    'STDS   = {', stdLines,  '}',
+    'TIERS  = {',
+    '    "Critical":(0.70,1.00,"Call today"),',
+    '    "High":(0.50,0.70,"Call this week"),',
+    '    "Moderate":(0.30,0.50,"Email offer"),',
+    '    "Low":(0.00,0.30,"Monitor"),',
+    '}',
+    '',
+    'def _encode(row):',
+    '    t=float(row.get("tenure",0)); m=float(row.get("MonthlyCharges",0))',
+    '    tot=float(row.get("TotalCharges",0)) or t*m',
+    '    cn=str(row.get("Contract","")).lower(); inet=str(row.get("InternetService","")).lower()',
+    '    pay=str(row.get("PaymentMethod","")).lower()',
+    '    ce=2 if "two" in cn else(1 if "one" in cn else 0)',
+    '    fi=1 if "fiber" in inet else 0; dsl=1 if "dsl" in inet else 0',
+    '    ec=1 if "electronic" in pay else 0; bt=1 if "bank" in pay else 0; cc=1 if "credit" in pay else 0',
+    '    yn=lambda k:1 if str(row.get(k,"No")).lower() in("yes","1","true") else 0',
+    '    ns=sum([yn("PhoneService"),yn("MultipleLines"),yn("OnlineSecurity"),yn("OnlineBackup"),',
+    '            yn("DeviceProtection"),yn("TechSupport"),yn("StreamingTV"),yn("StreamingMovies"),1 if fi or dsl else 0])',
+    '    return {"tenure":t,"MonthlyCharges":m,"TotalCharges":tot,',
+    '            "SeniorCitizen":yn("SeniorCitizen"),"Partner":yn("Partner"),"Dependents":yn("Dependents"),',
+    '            "PhoneService":yn("PhoneService"),"MultipleLines":yn("MultipleLines"),',
+    '            "OnlineSecurity":yn("OnlineSecurity"),"OnlineBackup":yn("OnlineBackup"),',
+    '            "DeviceProtection":yn("DeviceProtection"),"TechSupport":yn("TechSupport"),',
+    '            "StreamingTV":yn("StreamingTV"),"StreamingMovies":yn("StreamingMovies"),',
+    '            "Contract":ce,"PaperlessBilling":yn("PaperlessBilling"),"NumServices":ns,',
+    '            "InternetService_Fiber optic":fi,"InternetService_DSL":dsl,',
+    '            "PaymentMethod_Electronic check":ec,',
+    '            "PaymentMethod_Bank transfer (automatic)":bt,',
+    '            "PaymentMethod_Credit card (automatic)":cc}',
+    '',
+    'def score_customer(row:dict)->float:',
+    '    f=_encode(row); z=INTERCEPT',
+    '    for n,c in COEFS.items(): z+=c*(f.get(n,0)-MEANS.get(n,0))/(STDS.get(n,1) or 1)',
+    '    return round(1/(1+math.exp(-z)),4)',
+    '',
+    'def get_tier(p):',
+    '    for n,(lo,hi,a) in TIERS.items():',
+    '        if lo<=p<hi: return n,a',
+    '    return "Critical","Call today"',
+    '',
+    'def score_dataframe(df:pd.DataFrame)->pd.DataFrame:',
+    '    df=df.copy(); pr=df.apply(lambda r:score_customer(r.to_dict()),axis=1)',
+    '    df["ChurnProb"]=pr.round(4); df["ChurnProbPct"]=(pr*100).round(1)',
+    '    tiers=pr.map(get_tier)',
+    '    df["RiskTier"]=[t[0] for t in tiers]; df["RecommendedAction"]=[t[1] for t in tiers]',
+    '    return df.sort_values("ChurnProb",ascending=False)',
+    '',
+    'if __name__=="__main__":',
+    '    p=score_customer({"tenure":3,"MonthlyCharges":89,"Contract":"Month-to-month",',
+    '        "InternetService":"Fiber optic","PaymentMethod":"Electronic check",',
+    '        "SeniorCitizen":0,"Partner":"No","Dependents":"No","PhoneService":"Yes",',
+    '        "MultipleLines":"No","OnlineSecurity":"No","OnlineBackup":"No",',
+    '        "DeviceProtection":"No","TechSupport":"No","PaperlessBilling":"Yes"})',
+    '    t,a=get_tier(p)',
+    '    print(f"P(churn)={p:.1%} -> {t} ({a})")',
+  ].join('\n');
+
+  var blob = new Blob([lines], {type:'text/x-python;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href=url; a.download='churnguard_score.py';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RESET APP
+// ═══════════════════════════════════════════════════════════
+function resetApp() {
+  if (!confirm('Clear all loaded data and return to the upload screen?')) return;
+  lsClear();
+  allCustomers=[]; filteredCustomers=[]; uploadHistory=[];
+  sortKey='prob'; sortAsc=false; currentPage=1;
+  var badge = document.getElementById('dataset-badge');
+  if(badge) badge.textContent='No dataset loaded';
+  var rb = document.getElementById('reset-btn');
+  if(rb) rb.style.display='none';
+  var fs = document.getElementById('file-status');
+  if(fs) fs.classList.remove('visible');
+  var uh = document.getElementById('upload-history');
+  if(uh) uh.style.display='none';
+  var hl = document.getElementById('history-list');
+  if(hl) hl.innerHTML='<span class="no-history">No files loaded yet.</span>';
+  var tb = document.getElementById('table-body');
+  if(tb) tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text2);">Upload a CSV file to see the customer list</td></tr>';
+  resetFilters();
+  var cc = document.getElementById('coef-chart');
+  if(cc) cc.innerHTML='';
+  var lc = document.getElementById('md-live-card');
+  if(lc) lc.style.display='none';
+  var sd = document.getElementById('md-data-source');
+  if(sd) sd.textContent='No CSV loaded — showing training reference values';
+  var sb = document.getElementById('md-source-badge');
+  if(sb){ sb.textContent='Source: Python sklearn reference. Load your CSV to update with live data.'; sb.style.color=''; }
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('page-upload').classList.add('active');
+  document.querySelectorAll('.tab')[0].classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+// init
+lsLoadHistory();
+autoCalcTotal();
+</script>
+</body>
+</html>

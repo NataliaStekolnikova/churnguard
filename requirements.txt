@@ -1,0 +1,28 @@
+# Telco Customer Churn — Project Dependencies
+# Install with: pip install -r requirements.txt
+# Python >= 3.10 required
+
+# Core data manipulation
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Visualisation
+matplotlib>=3.6.0
+seaborn>=0.12.0
+
+# Machine learning
+scikit-learn>=1.2.0
+
+# Statistical analysis (Notebook 01)
+scipy>=1.10.0
+
+# Missing value visualisation (Notebook 01)
+missingno>=0.5.2
+
+# Database (Notebook 03)
+# sqlite3 is included in Python standard library — no install needed
+
+# Optional: Jupyter environment
+# jupyter>=1.0.0
+# notebook>=7.0.0
+# ipykernel>=6.0.0

@@ -1,0 +1,5 @@
+TenureGroup,total_customers,churned,retained,churn_rate_pct,avg_tenure_months,avg_monthly_eur,avg_num_services
+New,2186,1037,1149,47.4,4.7,56.1,2.9
+Junior,1024,294,730,28.7,18.4,61.36,3.6
+Mid,1594,325,1269,20.4,36.2,65.93,4.3
+Loyal,2239,213,2026,9.5,63.0,73.95,5.5

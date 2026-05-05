@@ -1,0 +1,2 @@
+total_customers,churned_customers,retained_customers,churn_rate_pct,capital_lost_eur,avg_ltv_churned_eur,avg_ltv_retained_eur,annual_net_loss_eur
+7043,1869,5174,26.5,2862926.9,1531.8,2550.0,57258.54
