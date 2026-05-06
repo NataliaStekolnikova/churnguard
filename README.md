@@ -4,7 +4,12 @@
 [linkedin.com/in/natalia-stekolnikova](https://www.linkedin.com/in/natalia-stekolnikova/)
 
 ---
+## Demo
 
+[![ChurnGuard Demo](https://img.youtube.com/vi/16mYjqCx2bE/maxresdefault.jpg)](https://youtu.be/16mYjqCx2bE)  
+
+---
+---
 ## What this project is about
 
 Telecommunications companies lose a predictable share of their customers every year. The problem is not the lack of data — it is the lack of a system that turns that data into a decision at the right moment.
