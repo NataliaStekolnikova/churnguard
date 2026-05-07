@@ -1,22 +1,25 @@
-# ChurnGuard — Customer Churn Prediction & Retention System
+# ChurnGuard — Predictive & Prescriptive Customer Retention System
 
 **Natalia Stekolnikova · Málaga, Spain · April 2026**  
 [linkedin.com/in/natalia-stekolnikova](https://www.linkedin.com/in/natalia-stekolnikova/)
 
 ---
+
 ## Demo
 
-[![ChurnGuard Demo](https://img.youtube.com/vi/16mYjqCx2bE/maxresdefault.jpg)](https://youtu.be/16mYjqCx2bE)  
+[![ChurnGuard Demo](https://img.youtube.com/vi/zCCC4xw3b-M/maxresdefault.jpg)](https://youtu.be/zCCC4xw3b-M)
 
 ---
----
+
 ## What this project is about
 
 Telecommunications companies lose a predictable share of their customers every year. The problem is not the lack of data — it is the lack of a system that turns that data into a decision at the right moment.
 
 This project started as a data analysis exercise and ended as a deployable product. The goal was not to build another notebook with metrics. The goal was to answer a practical question: **given a customer database, who is about to leave, why, and what exactly should we do about it — before it happens?**
 
-The answer is ChurnGuard: a complete end-to-end pipeline from raw data to a working application that a retention manager can open in a browser, load their customer file, and walk away with a prioritised call list — without writing a single line of code.
+The answer is ChurnGuard: a complete end-to-end pipeline from raw data to a working application that a retention manager can open in a browser, load their customer file, and walk away with a prioritised call list and a concrete recommended action for each customer — without writing a single line of code.
+
+ChurnGuard is both **predictive** and **prescriptive**. It does not only tell you who is about to leave — it tells you exactly what to do about it, how much it will cost, and what return to expect. The system moves the conversation from "here is a probability score" to "call this customer today, offer this, expect this outcome."
 
 ---
 
@@ -149,6 +152,8 @@ Break-even: retaining just 138 of the 1,097 projected customers (12.6%) covers t
 ## The application
 
 ChurnGuard is a single `.html` file. No Python runtime, no server, no installation. The model coefficients are embedded directly in JavaScript and run entirely in the browser.
+
+The system operates on two levels simultaneously. At the **predictive** level it assigns a churn probability P(churn) ∈ [0,1] to every customer in the loaded dataset. At the **prescriptive** level it translates that probability into a concrete action — monitor, send a personalised email, make a proactive call, or launch a VIP intervention — with an estimated cost per customer and a projected ROI for each campaign tier. The output is not a score to be interpreted. It is a decision ready to be executed.
 
 | Module | Function |
 |---|---|
